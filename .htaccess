@@ -1,0 +1,7 @@
+## Hide the "latex" directory
+
+<Directory "latex">
+Order allow,deny
+Deny from all
+</Directory>
+
