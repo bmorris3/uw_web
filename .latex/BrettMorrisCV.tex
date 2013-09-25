@@ -1,0 +1,149 @@
+% LaTeX resume using res.cls
+\documentclass[margin]{res}
+%\usepackage{helvetica} % uses helvetica postscript font (download helvetica.sty)
+%\usepackage{newcent}   % uses new century schoolbook postscript font 
+\setlength{\textwidth}{6.2in} % set width of text portion
+\newcommand{\code}[1]{\texttt{#1}}
+\usepackage{hyperref}
+\begin{document}
+
+% Center the name over the entire width of resume:
+ \moveleft.5\hoffset\centerline{\textsc{\Large Brett M. Morris}}
+ \moveleft.5\hoffset\centerline{Curriculum Vitae}
+
+% Draw a horizontal line the whole width of resume:
+\moveleft\hoffset\vbox{\hrule width\resumewidth height 1pt}\smallskip
+ \moveleft.5\hoffset\centerline{Email: \href{mailto:bmmorris@uw.edu}{bmmorris@uw.edu}}
+ \moveleft.5\hoffset\centerline{Department Website: \url{http://www.astro.umd.edu/~bmorris3/}}
+
+%% Select character to use as the bullet marker. 
+%% Comment out to get normal dark filled circle bullets
+\def\labelitemi{--}	
+
+\begin{resume}
+
+\section{Education} 
+University of Washington, Seattle, WA. \hfill 2013 -- present\\
+Graduate student in astronomy and astrobiology (dual-title PhD program)
+
+
+University of Maryland, College Park, MD.  \hfill 2009 -- 2012\\
+B.S.\ with High Honors in Astronomy \\
+B.S.\ in Physics (double degree)\\
+ 
+\section{Research} 
+
+                {\sl NASA Goddard Space Flight Center Research Assistantship} \hfill           Jan 2013 -- Aug 2013\\
+                Post-baccalaureate research assistantship with advisor Dr.\ Avi Mandell at the Goddard Center for Astrobiology.
+                 \begin{itemize}%  \itemsep -2pt %reduce space between items
+                 \item Prepared a Python data reduction pipeline for near-infrared differential spectrophotometric observations with Keck/MOSFIRE and Keck/NIRSPEC of transiting exoplanet atmospheres.
+                 \end{itemize}  
+
+                {\sl NASA Goddard Space Flight Center Research Associateship in Astrobiology} \hfill            Jun 2013 -- Aug 2012 \\
+                Undergraduate research associateship with mentor Dr.\ Avi Mandell at the Goddard Center for Astrobiology.
+                 \begin{itemize}%  \itemsep -2pt %reduce space between items
+                 \item Wrote original Python algorithms to compute differential photometry of transiting exoplanet HAT-P-7b to 
+                 detect the secondary eclipse using near-infrared observations from the Hale Telescope at the Palomar Observatory. 
+                 \item Generated composite light curves with Kepler photometry to measure the orbital parameters and atmospheric 
+                 properties of HAT-P-7b, with original analysis code in Python and IDL. 
+                 \item Proposed the first evidence for planet-induced stellar gravity darkening in the HAT-P-7 system.
+                 \end{itemize}  
+
+                {\sl Undergraduate Research with Professor Drake Deming} \hfill            Aug 2011 -- Dec 2012 \\
+                Independent research for credit (ASTR498), three semesters. 
+                 \begin{itemize}   
+        \item Traveled to Arizona to act as co-investigator on an observing campaign on the 2.1m telescope at Kitt Peak National Observatory for transiting 
+        exoplanet observations in the near-infrared. 
+                 \item Developed observing techniques and wrote Python algorithms to compute differential photometry 
+                 of transiting extrasolar planets using observations obtained at the UMD Observatory, Kitt Peak National Observatory and Palomar Observatory. 
+        \item Made the first exoplanet transit light curves produced at the UMD Observatory.
+        \item Released and maintain an open source differential photometry code for undergraduate and serious amateur astronomers called ``OSCAAR\footnote{\url{http://oscaar.github.io}}''.
+                 \item Submitted transit light curves to the Czech Astronomical Society Exoplanet Transit Database recorded at the University of Maryland Observatory.
+                 \end{itemize} 
+
+      {\sl Department of Astronomy Senior Honors Thesis} \hfill Aug 2010 -- Dec 2012 \\
+                ``Numerical Modeling of Rotational Fission of Contact Binary Asteroids'' with Professor Derek Richardson, five semesters. 
+                 \begin{itemize}   
+                 \item Modeled binary asteroid systems in Python and interfaced with an N-body integrator to probe the relative configuration equilibria of continuously torqued 
+contact binary asteroid systems. Used resources at the Department of Astronomy's Center for Theory and Computation 
+and UMD's High Performance Computing Cluster, computed for more than 4 years of CPU time. 
+                \item  Cited with ``High Honors'' by the Department of Astronomy for this work.
+                \end{itemize}
+
+                {\sl Undergraduate Research with Prof.\ Christopher Reynolds and Dr.\ Sean O'Neill} \hfill        Spring 2010 \\
+                Visualization of magneto-rotational instability in model black hole accretion disks, one semester.
+                  \begin{itemize}  
+                   \item Produce visualizations with VisIt to emphasize relevant astrophysical processes in model black hole accretion disks in Python. \\
+                   \end{itemize} 
+
+\section{Publications} 
+                % {\sl Publications}
+                 \begin{itemize}   
+                  \item \href{http://adsabs.harvard.edu/abs/2013ApJ...764L..22M}{\textbf{Morris, B.M.}, Mandell, A.M., Deming, D. ``Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening.'' The Astrophysical Journal Letters, Volume 764, Issue 2, article id.\ L22, 5 pp.\ (2013).}
+                 	%\item \textbf{Morris, B.M.} \& Richardson, D.C. ``Numerical Simulations of Rotational Fission of Contact Binary Asteroids.'' In preparation.
+		\item \href{http://www.scientificterrapin.umd.edu/Fall2011.php}{\textbf{Morris, B.M.} ``Observations of Transiting Exoplanets with Differential Photometry.'' Scientific Terrapin, Vol.\ III, Issue I.\ Fall 2011.}\\
+                 \end{itemize}
+
+\section{Honors\\And\\Awards} 
+                 \begin{itemize}   
+                  \item ``Audience Choice Award'' at the \textit{Astrobiology Speaks!} public outreach speaking competition. AbGradCon 2013, McGill University, Montreal, Canada. 
+                  \item Chambliss Astronomy Achievement Graduate Student Award Honorable Mention. 222$^{\mathtt{nd}}$ AAS, Indianapolis, IN.
+		\item Invited to present thesis for Department of Astronomy Honors, awarded High Honors citation (2012).
+                  \item UMD Presidential Scholar, 2009-2012.
+		\item Feature article in ``Scholars Newsletter'' for research achievements (Feb 2012).
+		\item College Park Scholar in the Science, Discovery and the Universe track, 2009-2011 (a two-year honors 
+		college program at UMD). \\
+                 \end{itemize}
+                 
+
+\section{Professional\\ Presentations} 
+                % {\sl Publications}
+                 \begin{itemize}  %\itemsep -5pt %reduce space between items
+                 \item Poster: ``Differential Photometry with OSCAAR: Open Source Differential Photometry Code for Amateur Astronomical Research''. AbGradCon 2013, McGill University, Montreal, Canada. June 12, 2013.
+                 \item Talk: ``KeplerÕs Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening''. AbGradCon 2013, McGill University, Montreal, Canada. June 11, 2013.
+                 \item Poster: ``Differential Photometry with OSCAAR: Open Source Differential Photometry Code for Amateur Astronomical Research''. 222$^\mathtt{nd}$ American Astronomical Society Meeting. Indianapolis, IN. June 4, 2013.
+                 \item \href{https://astrobiology.nasa.gov/seminars/featured-seminar-channels/gsfc-summer-internship/2012/08/09/gsfc-summer-research-associate-presentations/}{Symposium: ``Secondary Eclipse and Transiting Timing of Extra-Solar Plant HAT-P-7b''. 2012 NASA Goddard Space Flight Center Summer Research Associate Symposium. Goddard Center for Astrobiology, NASA Goddard Space Flight Center, Greenbelt, MD, August 9, 2012.}
+	        \item Thesis defense:  ``Numerical Simulations of Rotational Fission of Contact Binary Asteroids.'' Department of Astronomy, University of Maryland, College Park, MD. May 4, 2012.
+                 \item \href{http://adsabs.harvard.edu/abs/2012LPICo1667.6352S}{Abstract: Springmann, S., Dalba, P., Marchis, F., Vachier, F., Berthier, J., Descamps, P., \textbf{Morris B.}, 
+		Marciniak, A., Ros, S., Kryszczynska, A. ``Physical and orbital properties of the (22) Kalliope system from mutual eclipse observations.'' 
+		Asteroids, Comets, Meteors. Japan, May 2012.}\\
+		\end{itemize}
+
+\section{Observing \\Experience}
+            \begin{itemize}   
+            \item Kitt Peak National Observatory, 2.1 m (June 2012): Co-investigator for 6 nights observing transiting extrasolar planets in the near-infrared.
+            \item University of Maryland Observatory, 152 mm (2010-2013): $>100$ hours collecting photometry of transiting exoplanets and asteroids. \\
+            \end{itemize}
+                 
+\section{Teaching \\Experience}
+            \begin{itemize}   
+            \item Teaching assistant for ASTR310 Observational Astronomy for majors, experienced teaching night labs at the campus observatory (Fall 2011).
+            \item Teaching assistant for ASTR100 Introduction to Astronomy for non-majors (Fall 2012).
+            \item Research and service mentor to five undergraduates in the College Park Scholars students, collaborating to build/improve an open source differential photometry code in Python (OSCAAR). \\
+            \end{itemize}
+            
+\section{Public \\ Outreach}             
+            \begin{itemize}   
+	   \item President of the ``AstroTerps'' (2011-2012), the UMD Astronomical Society.
+            \item Volunteer for Visitor Services at the Smithsonian Air and Space Museum in Washington, D.C., May -- Aug 2011
+            \item Developed open source differential photometry routine with educational documentation for amateur transiting exoplanet observations (OSCAAR).\\
+            \end{itemize}
+	   \textbf{Public Talks}
+            \begin{itemize}   
+                \item ``Exoplanets: How To Find Them And Their Inhabitants.'' Kopernik Observatory and Science Center, Vestal, NY. July 17, 2013. 
+	       \item ``Earthlings: Get Over Yourselves.'' \textit{Astrobiology Speaks!} Series, Redpath Museum, McGill University, Montreal, Canada. June 11, 2013.	   
+	       \item ``Studying Transiting Exoplanets with the Biggest and Smallest Telescopes On and Off of Earth.'' University of Maryland Observatory Open House Public Talk. College Park, MD. March 5, 2013.
+            \end{itemize}
+            
+	     \textbf{AstroTerps (UMD Astronomical Society) Talks and Observing Sessions}
+	     \begin{itemize}
+	     \item Talk and observing session: ``The Leonid Meteor Shower.'' University of Maryland Observatory, College Park, MD. November 17, 2012.
+	       \item Talk and observing session: ``Astrophotography and Asteroid (433) Eros.'' University of Maryland Observatory, College Park, MD. February 2, 2012.		
+	       \item Talk and observing session: ``The Geminid Meteor Shower.'' University of Maryland Observatory, College Park, MD. December 13, 2011.
+	       \item Talk and observing session: ``The Leonid Meteor Shower.'' University of Maryland Observatory, College Park, MD. November 17, 2011.
+	       \item Talk: ``Fighting Light Pollution On Campus.'' Department of Astronomy, University of Maryland, College Park, MD. October 11, 2011.
+	       \item Talk and observing session: ``Sidewalk Observing On Campus.'' Department of Astronomy, University of Maryland, College Park, MD. September 29, 2011.\\
+	       \end{itemize}
+\vfill \hfill {\scriptsize Last updated: \today}
+\end{resume}
+\end{document}
