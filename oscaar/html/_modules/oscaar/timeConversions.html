@@ -1,0 +1,201 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.timeConversions &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.timeConversions</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+<span class="c">###########################################################################</span>
+<span class="c">###########################################################################</span>
+
+<div class="viewcode-block" id="jd2jd"><a class="viewcode-back" href="../../oscaar.html#oscaar.timeConversions.jd2jd">[docs]</a><span class="k">def</span> <span class="nf">jd2jd</span><span class="p">(</span><span class="n">jd</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">jd</span>
+</div>
+<div class="viewcode-block" id="dateobs2jd"><a class="viewcode-back" href="../../oscaar.html#oscaar.timeConversions.dateobs2jd">[docs]</a><span class="k">def</span> <span class="nf">dateobs2jd</span><span class="p">(</span><span class="n">ut</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert times from Universal Time (UT) to Julian Date (JD), splitting the date and time at the &quot;T&quot;. </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters </span>
+<span class="sd">    ----------</span>
+<span class="sd">	ut : string</span>
+<span class="sd">		Time in Universial Time (UT), in the format: &quot;&lt;YYYY:MM:DD&gt;T&lt;HH:MM:SS&gt;&quot;</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	jd : float</span>
+<span class="sd">		Julian Date (JD)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">[</span><span class="n">date</span><span class="p">,</span> <span class="n">Time</span><span class="p">]</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;T&#39;</span><span class="p">)</span>
+    <span class="n">Time</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="p">[</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">]</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span>
+    <span class="p">[</span><span class="n">hour</span><span class="p">,</span> <span class="nb">min</span><span class="p">,</span> <span class="n">sec</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">year</span><span class="p">);</span> <span class="n">month</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">month</span><span class="p">);</span> <span class="n">day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">day</span><span class="p">)</span>
+    <span class="n">hour</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour</span><span class="p">);</span> <span class="nb">min</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">);</span> <span class="n">sec</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span>
+    <span class="c">#years = (int(year) + 4716)*365.25</span>
+    <span class="k">if</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> 
+        <span class="n">month</span> <span class="o">+=</span> <span class="mi">12</span>
+        <span class="n">year</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">year</span><span class="o">/</span><span class="mi">100</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="o">/</span><span class="mi">4</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">2</span><span class="o">-</span><span class="n">a</span><span class="o">+</span><span class="n">b</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">day</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">365.25</span><span class="o">*</span><span class="p">(</span><span class="n">year</span><span class="o">+</span><span class="mi">4716</span><span class="p">))</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">30.6001</span><span class="o">*</span><span class="p">(</span><span class="n">month</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">years</span> <span class="o">=</span> <span class="n">c</span><span class="o">+</span><span class="n">d</span><span class="o">+</span><span class="n">e</span><span class="o">+</span><span class="n">f</span><span class="o">-</span><span class="mf">1524.5</span>
+    <span class="n">fracOfDay</span> <span class="o">=</span> <span class="p">(</span><span class="n">hour</span><span class="o">/</span><span class="mf">24.</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nb">min</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="n">sec</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span>
+    <span class="n">jd</span> <span class="o">=</span> <span class="n">years</span> <span class="o">+</span> <span class="n">fracOfDay</span>
+    <span class="k">return</span> <span class="n">jd</span>
+
+</div>
+<div class="viewcode-block" id="mjd2jd"><a class="viewcode-back" href="../../oscaar.html#oscaar.timeConversions.mjd2jd">[docs]</a><span class="k">def</span> <span class="nf">mjd2jd</span><span class="p">(</span><span class="n">mjd</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts Modified Julian Date to Julian Date. Definition of Modified Julian Date (MJD): MJD = JD - 2400000.5</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mjd : float</span>
+<span class="sd">        The Modified Julian Date</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    jd : float</span>
+<span class="sd">        :math:`$mjd + 2400000.5 = jd$`, the corresponding ordinary Julian Date</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">mjd</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="mf">2400000.5</span><span class="p">)</span>
+
+<span class="c">###########################################################################</span>
+<span class="c">###########################################################################</span>
+
+    </div>
+<div class="viewcode-block" id="findKeyword"><a class="viewcode-back" href="../../oscaar.html#oscaar.timeConversions.findKeyword">[docs]</a><span class="k">def</span> <span class="nf">findKeyword</span><span class="p">(</span><span class="n">fitsFile</span><span class="p">):</span> 
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	fitsfile : string</span>
+<span class="sd">		Path to a FITS file</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">    (useKeyword, allKeys, conversionFunction) : tuple</span>
+<span class="sd">		where </span>
+<span class="sd">		- `useKeyword` is the FITS header keyword that should be used to find</span>
+<span class="sd">		the time of the exposure, </span>
+<span class="sd">		- `allKeys` is the list of all header keywords in the first exposure</span>
+<span class="sd">		- `conversionFunction` is a function that will convert the time value stored in </span>
+<span class="sd">		the keyword denoted by `useKeyword` to Julian Date</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    
+    <span class="c">## All keys in FITS header for the file</span>
+    <span class="n">allKeys</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="n">fitsFile</span><span class="p">)</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    
+    <span class="c">## List of potential keywords to search for</span>
+    <span class="n">knownkeys</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;JD&quot;</span><span class="p">,</span><span class="s">&quot;MJD-OBS&quot;</span><span class="p">,</span><span class="s">&quot;DATE-OBS&quot;</span><span class="p">,</span><span class="s">&quot;UTC-OBS&quot;</span><span class="p">]</span>
+    <span class="n">conversions</span> <span class="o">=</span> <span class="p">[</span><span class="n">jd2jd</span><span class="p">,</span> <span class="n">mjd2jd</span><span class="p">,</span> <span class="n">dateobs2jd</span><span class="p">,</span> <span class="n">dateobs2jd</span><span class="p">]</span>
+    <span class="n">conversionFunction</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">useKeyword</span> <span class="o">=</span> <span class="bp">None</span>
+    
+    <span class="c">## Search for keywords for which we&#39;ve predefined conversion functions </span>
+    <span class="n">j</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">while</span> <span class="n">useKeyword</span> <span class="o">==</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">j</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">knownkeys</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">j</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">knownkeys</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="n">allKeys</span><span class="p">:</span>
+            <span class="n">conversionFunction</span> <span class="o">=</span> <span class="n">conversions</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">useKeyword</span> <span class="o">=</span> <span class="n">knownkeys</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+ 
+    <span class="k">if</span> <span class="n">useKeyword</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span> <span class="k">print</span> <span class="s">&quot;No known keywords found&quot;</span>
+    <span class="k">return</span> <span class="n">useKeyword</span><span class="p">,</span> <span class="n">allKeys</span><span class="p">,</span> <span class="n">knownkeys</span><span class="p">,</span> <span class="n">conversionFunction</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

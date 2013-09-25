@@ -1,0 +1,311 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.astrometry.trackSmooth &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.astrometry.trackSmooth</h1><div class="highlight"><pre>
+<span class="sd">&#39;&#39;&#39;oscaar v2.0 </span>
+<span class="sd">   Module for differential photometry</span>
+<span class="sd">   Developed by Brett Morris, 2011-2013&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linalg</span> <span class="k">as</span> <span class="n">LA</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="kn">as</span> <span class="nn">cm</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">ndimage</span><span class="p">,</span> <span class="n">optimize</span>
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+<span class="kn">from</span> <span class="nn">re</span> <span class="kn">import</span> <span class="n">split</span>
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<div class="viewcode-block" id="quadraticFit"><a class="viewcode-back" href="../../../oscaar.astrometry.html#oscaar.astrometry.trackSmooth.quadraticFit">[docs]</a><span class="k">def</span> <span class="nf">quadraticFit</span><span class="p">(</span><span class="n">derivative</span><span class="p">,</span><span class="n">ext</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Find an extremum in the data and use it and the points on either side, fit</span>
+<span class="sd">    a quadratic function to the three points, and return the x-position of the </span>
+<span class="sd">    apex of the best-fit parabola. </span>
+<span class="sd">    </span>
+<span class="sd">    Called by oscaar.trackSmooth()</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    derivative : numpy.ndarray</span>
+<span class="sd">       The first derivative of the series of points, usually calculated by np.diff()</span>
+<span class="sd">                    </span>
+<span class="sd">    ext : string </span>
+<span class="sd">        Extremum to look find. May be either &quot;max&quot; or &quot;min&quot;</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    extremum : float</span>
+<span class="sd">        The (non-integer) index where the extremum was found</span>
+<span class="sd">       </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">rangeOfFit</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">lenDer</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">derivative</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span>
+    <span class="k">if</span> <span class="n">ext</span> <span class="o">==</span> <span class="s">&quot;max&quot;</span><span class="p">:</span>
+        <span class="n">indExtrema</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">derivative</span><span class="p">[:</span><span class="n">lenDer</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">ext</span> <span class="o">==</span> <span class="s">&quot;min&quot;</span><span class="p">:</span>
+        <span class="n">indExtrema</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">derivative</span><span class="p">[</span><span class="n">lenDer</span><span class="p">:])</span><span class="o">+</span><span class="n">lenDer</span>
+
+    <span class="n">fitPart</span> <span class="o">=</span> <span class="n">derivative</span><span class="p">[</span><span class="n">indExtrema</span><span class="o">-</span><span class="n">rangeOfFit</span><span class="p">:</span><span class="n">indExtrema</span><span class="o">+</span><span class="n">rangeOfFit</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fitPart</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">stackPolynomials</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">fitPart</span><span class="p">)):</span>
+            <span class="n">stackPolynomials</span><span class="p">[</span><span class="n">i</span><span class="p">,:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="mf">1.0</span><span class="p">]</span>
+        <span class="n">estimatedCoeffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">LA</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">stackPolynomials</span><span class="p">),</span><span class="n">fitPart</span><span class="p">)</span>
+        <span class="n">d_fit</span> <span class="o">=</span> <span class="o">-</span><span class="n">estimatedCoeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">estimatedCoeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>            <span class="c">#d_fit = -b_fit/(2.*a_fit)</span>
+        <span class="n">extremum</span> <span class="o">=</span> <span class="n">d_fit</span><span class="o">+</span><span class="n">indExtrema</span><span class="o">-</span><span class="n">rangeOfFit</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="n">extremum</span> <span class="o">=</span> <span class="n">indExtrema</span>
+    <span class="k">return</span> <span class="n">extremum</span>
+</div>
+<div class="viewcode-block" id="trackSmooth"><a class="viewcode-back" href="../../../oscaar.astrometry.html#oscaar.astrometry.trackSmooth.trackSmooth">[docs]</a><span class="k">def</span> <span class="nf">trackSmooth</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">est_x</span><span class="p">,</span> <span class="n">est_y</span><span class="p">,</span> <span class="n">smoothingConst</span><span class="p">,</span> <span class="n">plottingThings</span><span class="p">,</span> <span class="n">preCropped</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">zoom</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span><span class="n">plots</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Method for tracking stellar centroids. </span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ---------- </span>
+<span class="sd">        image : numpy.ndarray</span>
+<span class="sd">            FITS image read in by PyFITS</span>
+<span class="sd">    </span>
+<span class="sd">        est_x : float</span>
+<span class="sd">            Inital estimate for the x-centroid of the star</span>
+<span class="sd">        </span>
+<span class="sd">        est_y : float</span>
+<span class="sd">            Inital estimate for the y-centroid of the star</span>
+<span class="sd">        </span>
+<span class="sd">        smoothingConstant : float</span>
+<span class="sd">            Controls the degree to which the raw stellar intensity profile will be smoothed by a Gaussian filter (0 = no smoothing)</span>
+<span class="sd">        </span>
+<span class="sd">        preCropped : bool</span>
+<span class="sd">            If preCropped=False, image is assumed to be a raw image, if preCropped=True, image is assumed to be only the </span>
+<span class="sd">            portion of the image near the star</span>
+<span class="sd">        </span>
+<span class="sd">        zoom : int or float</span>
+<span class="sd">            How many pixels in each direction away from the estimated centroid to consider when tracking the centroid. Be </span>
+<span class="sd">            sure to choose a large enough zoom value the stellar centroid in the next exposure will fit within the zoom</span>
+<span class="sd">        </span>
+<span class="sd">        plots : bool</span>
+<span class="sd">            If plots=True, display stellar intensity profile in two axes and the centroid solution</span>
+<span class="sd">                                </span>
+<span class="sd">     Returns</span>
+<span class="sd">     ------- </span>
+<span class="sd">         xCenter : float</span>
+<span class="sd">             The best-fit x-centroid of the star</span>
+<span class="sd">    </span>
+<span class="sd">         yCenter : float</span>
+<span class="sd">             The best-fit y-centroid of the star</span>
+<span class="sd">         </span>
+<span class="sd">         averageRadius : float</span>
+<span class="sd">             Average radius of the SMOOTHED star in pixels</span>
+<span class="sd">         </span>
+<span class="sd">         errorFlag : bool</span>
+<span class="sd">             Boolean corresponding to whether or not any error occured when running oscaar.trackSmooth(). If an </span>
+<span class="sd">             error occured, the flag is True; otherwise False.</span>
+<span class="sd">                         </span>
+<span class="sd">     Core developer: Brett Morris</span>
+<span class="sd">     Modifications by: Luuk Visser, 2-12-2013</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="sd">&#39;&#39;&#39;If you have an interpolated grid as input, small inputs for smoothingConst</span>
+<span class="sd">        it won&#39;t have any effect. Thus it has to be increased by the</span>
+<span class="sd">        zoom factor you used to sub-pixel interpolate. </span>
+<span class="sd">        </span>
+<span class="sd">        np.e seems to give nice smoothing results if frame is already cut out, you can </span>
+<span class="sd">        set preCropped to True, so the script won&#39;t cut a frame out again. &#39;&#39;&#39;</span>
+    <span class="k">try</span><span class="p">:</span>
+	    <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+	        <span class="p">[</span><span class="n">fig</span><span class="p">,</span><span class="n">subplotsDimensions</span><span class="p">,</span><span class="n">photSubplotsOffset</span><span class="p">]</span> <span class="o">=</span> <span class="n">plottingThings</span>
+	    <span class="k">if</span> <span class="n">preCropped</span><span class="p">:</span>
+	        <span class="n">zoom</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="mi">2</span>
+	        <span class="n">est_x</span><span class="p">,</span> <span class="n">est_y</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span><span class="mi">0</span>
+	        <span class="n">target</span> <span class="o">=</span> <span class="n">image</span> <span class="c">## Assume image is pre-cropped image of the star</span>
+	    <span class="k">else</span><span class="p">:</span>
+	        <span class="c">#smoothingConst *= zoom/20 </span>
+	        <span class="n">target</span> <span class="o">=</span> <span class="n">image</span><span class="p">[</span><span class="n">est_x</span><span class="o">-</span><span class="n">zoom</span><span class="p">:</span><span class="n">est_x</span><span class="o">+</span><span class="n">zoom</span><span class="p">,</span><span class="n">est_y</span><span class="o">-</span><span class="n">zoom</span><span class="p">:</span><span class="n">est_y</span><span class="o">+</span><span class="n">zoom</span><span class="p">]</span>   <span class="c">## Crop image of just the target star</span>
+	        
+	    <span class="c">#Save original (unsmoothed) data for plotting purposses</span>
+	    <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+	        <span class="n">target_orig</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+	        <span class="n">axisA_orig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>   <span class="c">## Take the sums of all values in each column,</span>
+	        <span class="n">axisB_orig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>   <span class="c">## then repeat for each row</span>
+	    
+	    <span class="n">target</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">gaussian_filter</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">smoothingConst</span><span class="p">,</span><span class="n">order</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+	    
+	    <span class="c">## Sum columns</span>
+	    <span class="n">axisA</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>   <span class="c">## Take the sums of all values in each column,</span>
+	    <span class="n">axisB</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>   <span class="c">## then repeat for each row</span>
+	
+	    <span class="n">axisADeriv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">axisA</span><span class="p">)</span>     <span class="c">## Find the differences between each pixel intensity and</span>
+	    <span class="n">axisBDeriv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">axisB</span><span class="p">)</span>     <span class="c">## the neighboring pixel (derivative of intensity profile)</span>
+	
+	    <span class="n">lenaxisADeriv</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axisADeriv</span><span class="p">)</span>
+	    <span class="n">lenaxisADeriv_2</span> <span class="o">=</span> <span class="n">lenaxisADeriv</span><span class="o">/</span><span class="mi">2</span>
+	    <span class="n">lenaxisBDeriv</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">axisBDeriv</span><span class="p">)</span>
+	    <span class="n">lenaxisBDeriv_2</span> <span class="o">=</span> <span class="n">lenaxisBDeriv</span><span class="o">/</span><span class="mi">2</span>
+	    
+	    <span class="n">derivMinAind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">axisADeriv</span> <span class="o">==</span> <span class="nb">min</span><span class="p">(</span><span class="n">axisADeriv</span><span class="p">[</span><span class="n">lenaxisADeriv_2</span><span class="p">:</span><span class="n">lenaxisADeriv</span><span class="p">]))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c">## Minimum in the derivative</span>
+	    <span class="n">derivMinBind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">axisBDeriv</span> <span class="o">==</span> <span class="nb">min</span><span class="p">(</span><span class="n">axisBDeriv</span><span class="p">[</span><span class="n">lenaxisBDeriv_2</span><span class="p">:</span><span class="n">lenaxisBDeriv</span><span class="p">]))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c">## of the intensity plot</span>
+	
+	    <span class="n">derivMaxAind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">axisADeriv</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span><span class="n">axisADeriv</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">lenaxisADeriv_2</span><span class="p">]))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c">## Maximum in the derivative</span>
+	    <span class="n">derivMaxBind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">axisBDeriv</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span><span class="n">axisBDeriv</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">lenaxisBDeriv_2</span><span class="p">]))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c">## of the intensity plot</span>
+	
+	    <span class="n">extremumA</span> <span class="o">=</span> <span class="n">quadraticFit</span><span class="p">(</span><span class="n">axisADeriv</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;max&quot;</span><span class="p">)</span>
+	    <span class="n">extremumB</span> <span class="o">=</span> <span class="n">quadraticFit</span><span class="p">(</span><span class="n">axisADeriv</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;min&quot;</span><span class="p">)</span>
+	    <span class="n">extremumC</span> <span class="o">=</span> <span class="n">quadraticFit</span><span class="p">(</span><span class="n">axisBDeriv</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;max&quot;</span><span class="p">)</span>
+	    <span class="n">extremumD</span> <span class="o">=</span> <span class="n">quadraticFit</span><span class="p">(</span><span class="n">axisBDeriv</span><span class="p">,</span><span class="n">ext</span><span class="o">=</span><span class="s">&quot;min&quot;</span><span class="p">)</span>
+	
+	    <span class="n">averageRadius</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">derivMinAind</span><span class="o">-</span><span class="n">derivMaxAind</span><span class="p">)</span><span class="o">+</span> \
+	        <span class="nb">abs</span><span class="p">(</span><span class="n">derivMinBind</span><span class="o">-</span><span class="n">derivMaxBind</span><span class="p">))</span><span class="o">/</span><span class="mf">4.</span> <span class="c">## Average diameter / 2</span>
+	    <span class="n">axisAcenter</span> <span class="o">=</span> <span class="p">(</span><span class="n">extremumA</span><span class="o">+</span><span class="n">extremumB</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span>
+	    <span class="n">axisBcenter</span> <span class="o">=</span> <span class="p">(</span><span class="n">extremumC</span><span class="o">+</span><span class="n">extremumD</span><span class="p">)</span><span class="o">/</span><span class="mf">2.</span>
+	    
+	    <span class="n">xCenter</span> <span class="o">=</span> <span class="n">est_x</span><span class="o">-</span><span class="n">zoom</span><span class="o">+</span><span class="n">axisBcenter</span>
+	    <span class="n">yCenter</span> <span class="o">=</span> <span class="n">est_y</span><span class="o">-</span><span class="n">zoom</span><span class="o">+</span><span class="n">axisAcenter</span>
+	    
+	    <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+	        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+	        <span class="c">#plt.clf(fig)</span>
+	        <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+	            <span class="sd">&#39;&#39;&#39;Function to also give data value on mouse over with imshow.&#39;&#39;&#39;</span>
+	            <span class="n">col</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mf">0.5</span><span class="p">)</span>
+	            <span class="n">row</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="o">+</span><span class="mf">0.5</span><span class="p">)</span>
+	            <span class="k">try</span><span class="p">:</span>
+	                <span class="k">return</span> <span class="s">&#39;x=</span><span class="si">%1.4f</span><span class="s">, y=</span><span class="si">%1.4f</span><span class="s">, z=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">target</span><span class="p">[</span><span class="n">row</span><span class="p">,</span><span class="n">col</span><span class="p">])</span>
+	            <span class="k">except</span><span class="p">:</span>
+	                <span class="k">return</span> <span class="s">&#39;x=</span><span class="si">%1.4f</span><span class="s">, y=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+	        
+	        <span class="n">dimx</span><span class="p">,</span><span class="n">dimy</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span>
+	        <span class="n">med</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+	        <span class="n">dsig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+	        
+	        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">subplotsDimensions</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">target_orig</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="o">.</span><span class="n">gray</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s">&quot;nearest&quot;</span><span class="p">,</span><span class="n">vmin</span> <span class="o">=</span> <span class="n">med</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="n">dsig</span><span class="p">,</span> <span class="n">vmax</span> <span class="o">=</span><span class="n">med</span><span class="o">+</span><span class="mi">2</span><span class="o">*</span><span class="n">dsig</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Star Center&#39;</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="n">axisAcenter</span><span class="o">+</span><span class="mf">0.5</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;b&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">xmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">xmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">y</span><span class="o">=</span><span class="n">axisBcenter</span><span class="o">+</span><span class="mf">0.5</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="o">-.</span><span class="mi">5</span><span class="p">,</span><span class="n">dimx</span><span class="o">-.</span><span class="mi">5</span><span class="p">])</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="o">-.</span><span class="mi">5</span><span class="p">,</span><span class="n">dimy</span><span class="o">-.</span><span class="mi">5</span><span class="p">])</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;X&#39;</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Y&#39;</span><span class="p">)</span>
+	        <span class="n">ax</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+	        
+	        <span class="n">ax2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">subplotsDimensions</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Smoothed Intensity Profile&#39;</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">axisB</span><span class="p">,</span><span class="s">&#39;-r&#39;</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">axisB_orig</span><span class="p">,</span><span class="s">&#39;-r&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.33</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">extremumC</span><span class="p">,</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">extremumD</span><span class="p">,</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">axisBcenter</span><span class="p">,</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;X&#39;</span><span class="p">)</span>
+	        <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Counts&#39;</span><span class="p">)</span>
+	
+	        <span class="n">ax3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">subplotsDimensions</span><span class="o">+</span><span class="mi">3</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">axisA</span><span class="p">,</span><span class="s">&#39;-b&#39;</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">axisA_orig</span><span class="p">,</span><span class="s">&#39;-b&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.33</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Smoothed Intensity Profile&#39;</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">extremumA</span><span class="p">,</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;b&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">extremumB</span><span class="p">,</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;b&#39;</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">axisAcenter</span><span class="p">,</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;b&#39;</span><span class="p">,</span><span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Y&#39;</span><span class="p">)</span>
+	        <span class="n">ax3</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Counts&#39;</span><span class="p">)</span>
+	        <span class="n">plt</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+	    <span class="k">return</span> <span class="p">[</span><span class="n">xCenter</span><span class="p">,</span><span class="n">yCenter</span><span class="p">,</span><span class="n">averageRadius</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>    <span class="c">## If an error occurs:</span>
+        <span class="k">print</span> <span class="s">&quot;An error has occured in oscaar.trackSmooth(), </span><span class="se">\n\t</span><span class="s">returning inital (x,y) estimate&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">est_x</span><span class="p">,</span> <span class="n">est_y</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">True</span><span class="p">]</span>
+        </div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

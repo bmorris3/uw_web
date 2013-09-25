@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.transitModel &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.transitModel</h1><div class="highlight"><pre>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    transitModel.py defines the function occultquad(), which </span>
+<span class="sd">    loads the C library containing the function of the same </span>
+<span class="sd">    name so that analytical transit light curves can be </span>
+<span class="sd">    produced in python by passing pythonic arguments to the C code. </span>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="c">## Resources on using ctypes:</span>
+<span class="c"># http://docs.python.org/2/library/ctypes.html#ctypes.c_float</span>
+<span class="c"># http://www.scipy.org/Cookbook/Ctypes#head-0c422ad0dcf3a37f8c16d4cfd85e37e1f7290214</span>
+<span class="c"># http://docs.scipy.org/doc/numpy/reference/routines.ctypeslib.html</span>
+
+<span class="c">## Save the absolute path to this document, so as to successfully</span>
+<span class="c">## call the C library stored in the oscaar/c/ directory</span>
+<span class="c">#oscaarModuleDir = os.path.split(os.path.abspath(oscaar.__file__))[0]</span>
+<span class="n">transitModelDir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span>
+<span class="c">#print __file__ , os.path.abspath(__file__) , os.path.dirname(os.path.abspath(__file__))</span>
+<span class="c">#def occultquad(t,p,ap,i,t0,gamma1=0.23,gamma2=0.45,P=1.58,e=0.0,longPericenter=0.0):</span>
+
+<div class="viewcode-block" id="occultquad"><a class="viewcode-back" href="../../oscaar.html#oscaar.transitModel.occultquad">[docs]</a><span class="k">def</span> <span class="nf">occultquad</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">modelParams</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculates the analytical transit light curve for a planet occulting a star, according to the formalism</span>
+<span class="sd">    of Mandel &amp; Agol (2002) [1]_.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    t : list or numpy.ndarray</span>
+<span class="sd">    	List of the times sampled in Julian Date</span>
+
+<span class="sd">    modelParams : list</span>
+<span class="sd">    	List of the planetary system parameters, in the following order: </span>
+<span class="sd">    	- :math:`$R_p/R_s$`: Ratio of the radius of the planet to the radius of the star</span>
+<span class="sd">    	- :math:`$a/R_s$`: Ratio of the semi-major axis to the radius of the star</span>
+<span class="sd">    	- :math:`$P$`: Orbital period</span>
+<span class="sd">    	- :math:`$\gamma_1$`: Limb-darkening coefficient, linear</span>
+<span class="sd">    	- :math:`$\gamma_2$`: Limb-darkening coefficient, quadratic</span>
+<span class="sd">    	- :math:`$e$`: Eccentricity</span>
+<span class="sd">    	- `longPericenter`: Longitude of pericenter</span>
+<span class="sd">    	- :math:`$t_0$`: Mid-transit time (JD)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    F : numpy.ndarray</span>
+<span class="sd">    	Relative fluxes at each time of the time vector `t`</span>
+
+<span class="sd">    .. [1] Mandel &amp; Agol. &quot;Analytic Light Curvesfrom glob import glob</span>
+<span class="sd"> for Planetary Transit Searches&quot;. </span>
+<span class="sd">           The Astrophysical Journal, Volume 580, Issue 2, pp. L171-L175. 2002.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">[</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">e</span><span class="p">,</span><span class="n">longPericenter</span><span class="p">,</span><span class="n">t0</span><span class="p">]</span> <span class="o">=</span> <span class="n">modelParams</span>
+    <span class="c">#[p,ap,P,i,gamma1,gamma2,e,longPericenter,t0] = modelParams</span>
+
+    <span class="c">###################################################################################################</span>
+    <span class="c">## Ctypes definitions from C-libraries</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">transitModelDir</span><span class="p">,</span><span class="s">&#39;c&#39;</span><span class="p">,</span><span class="s">&#39;analyticalTransitModel.so&#39;</span><span class="p">),</span><span class="s">&#39;.&#39;</span><span class="p">)</span> 	<span class="c">## Loads .so library</span>
+    <span class="c">#lib = np.ctypeslib.load_library(&#39;transit1forLMLS.so&#39;,&#39;.&#39;)</span>
+    <span class="n">occultquadC</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">occultquad</span>
+    <span class="n">occultquadC</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span><span class="n">flags</span><span class="o">=</span><span class="s">&#39;aligned,C_CONTIGUOUS&#39;</span><span class="p">),</span>	<span class="c">#t</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># p</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># ap</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># P</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># i</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># gamma1</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># gamma2</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># e</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="c"># longPericenter</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span> <span class="c"># t0</span>
+                               <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span>	<span class="c"># n</span>
+                               <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span><span class="n">flags</span><span class="o">=</span><span class="s">&#39;aligned,C_CONTIGUOUS&#39;</span><span class="p">)]</span>	<span class="c"># F</span>
+    <span class="c">## argtypes defines what each function argument&#39;s type will be using the numpy.ctypeslib and ctypes libraries. </span>
+    <span class="c">## NOTE!: If vector input is going to be a vector of C-floats, use np.ctypeslib.ndpointer(np.float32,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+    <span class="c">##        If vector input is going to be a vector of C-doubles, use np.ctypeslib.ndpointer(np.float64,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+
+    <span class="c">## The arguments of occultquad are: occultquad(float *t, float *phi, float p, float ap, float P, float i, float gamma1, </span>
+    <span class="c">##											   float gamma2, double e, double longPericenter, double t0, float n, float *F);</span>
+
+    <span class="n">occultquadC</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="bp">None</span>	<span class="c">## Put the return type of the function here. If &quot;return void&quot; in C func, restype=None</span>
+
+    <span class="c">#################################################################</span>
+   
+    <span class="c">## np.require() will force the ndarrays to the right dtype as assigned in the `argtypes` list.</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">require</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">F</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">occultquadC</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span>  <span class="n">ap</span><span class="p">,</span>  <span class="n">P</span><span class="p">,</span>  <span class="n">i</span><span class="p">,</span>  <span class="n">gamma1</span><span class="p">,</span>  <span class="n">gamma2</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span><span class="n">longPericenter</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span>  <span class="n">n</span><span class="p">,</span>  <span class="n">F</span><span class="p">)</span>	<span class="c">## Simulate fake data</span>
+    <span class="k">return</span> <span class="n">F</span>
+</div>
+<div class="viewcode-block" id="ellipk"><a class="viewcode-back" href="../../oscaar.html#oscaar.transitModel.ellipk">[docs]</a><span class="k">def</span> <span class="nf">ellipk</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes polynomial approximation for the complete elliptic integral of the first kind (Hasting&#39;s approximation):</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">###################################################################################################</span>
+    <span class="c">## Ctypes definitions from C-libraries</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">oscaarModuleDir</span><span class="p">,</span><span class="s">&#39;c&#39;</span><span class="p">,</span><span class="s">&#39;analyticalTransitModel.so&#39;</span><span class="p">),</span><span class="s">&#39;.&#39;</span><span class="p">)</span> 	<span class="c">## Loads .so library</span>
+    <span class="n">Kfunction</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">K</span>
+    <span class="n">Kfunction</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">]</span>	
+    <span class="c">## argtypes defines what each function argument&#39;s type will be using the numpy.ctypeslib and ctypes libraries. </span>
+    <span class="c">## NOTE!: If vector input is going to be a vector of C-floats, use np.ctypeslib.ndpointer(np.float32,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+    <span class="c">##        If vector input is going to be a vector of C-doubles, use np.ctypeslib.ndpointer(np.float64,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+
+    <span class="c">## The arguments of occultquad are: occultquad(float *t, float *phi, float p, float ap, float P, float i, float gamma1, </span>
+    <span class="c">##											   float gamma2, double e, double longPericenter, double t0, float n, float *F);</span>
+
+    <span class="n">Kfunction</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span>	<span class="c">## Put the return type of the function here. If &quot;return void&quot; in C func, restype=None</span>
+
+    <span class="c">#################################################################</span>
+    <span class="k">return</span> <span class="n">Kfunction</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ellipe"><a class="viewcode-back" href="../../oscaar.html#oscaar.transitModel.ellipe">[docs]</a><span class="k">def</span> <span class="nf">ellipe</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes polynomial approximation for the complete elliptic integral of the second kind (Hasting&#39;s approximation)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">###################################################################################################</span>
+    <span class="c">## Ctypes definitions from C-libraries</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">oscaarModuleDir</span><span class="p">,</span><span class="s">&#39;c&#39;</span><span class="p">,</span><span class="s">&#39;analyticalTransitModel.so&#39;</span><span class="p">),</span><span class="s">&#39;.&#39;</span><span class="p">)</span> 	<span class="c">## Loads .so library</span>
+    <span class="n">Efunction</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">E</span>
+    <span class="n">Efunction</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">]</span>	
+    <span class="c">## argtypes defines what each function argument&#39;s type will be using the numpy.ctypeslib and ctypes libraries. </span>
+    <span class="c">## NOTE!: If vector input is going to be a vector of C-floats, use np.ctypeslib.ndpointer(np.float32,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+    <span class="c">##        If vector input is going to be a vector of C-doubles, use np.ctypeslib.ndpointer(np.float64,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+
+    <span class="c">## The arguments of occultquad are: occultquad(float *t, float *phi, float p, float ap, float P, float i, float gamma1, </span>
+    <span class="c">##											   float gamma2, double e, double longPericenter, double t0, float n, float *F);</span>
+
+    <span class="n">Efunction</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span>	<span class="c">## Put the return type of the function here. If &quot;return void&quot; in C func, restype=None</span>
+
+    <span class="c">#################################################################</span>
+    <span class="k">return</span> <span class="n">Efunction</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ellippi"><a class="viewcode-back" href="../../oscaar.html#oscaar.transitModel.ellippi">[docs]</a><span class="k">def</span> <span class="nf">ellippi</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">k</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the complete elliptical integral of the third kind using the algorithm of Bulirsch (1965)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c">###################################################################################################</span>
+    <span class="c">## Ctypes definitions from C-libraries</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ctypeslib</span><span class="o">.</span><span class="n">load_library</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">oscaarModuleDir</span><span class="p">,</span><span class="s">&#39;c&#39;</span><span class="p">,</span><span class="s">&#39;analyticalTransitModel.so&#39;</span><span class="p">),</span><span class="s">&#39;.&#39;</span><span class="p">)</span> 	<span class="c">## Loads .so library</span>
+    <span class="n">PIfunction</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">PI</span>
+    <span class="n">PIfunction</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">,</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span><span class="p">]</span>	
+    <span class="c">## argtypes defines what each function argument&#39;s type will be using the numpy.ctypeslib and ctypes libraries. </span>
+    <span class="c">## NOTE!: If vector input is going to be a vector of C-floats, use np.ctypeslib.ndpointer(np.float32,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+    <span class="c">##        If vector input is going to be a vector of C-doubles, use np.ctypeslib.ndpointer(np.float64,flags=&#39;aligned,C_CONTIGUOUS&#39;)</span>
+
+    <span class="c">## The arguments of occultquad are: occultquad(float *t, float *phi, float p, float ap, float P, float i, float gamma1, </span>
+    <span class="c">##											   float gamma2, double e, double longPericenter, double t0, float n, float *F);</span>
+
+    <span class="n">PIfunction</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_double</span>	<span class="c">## Put the return type of the function here. If &quot;return void&quot; in C func, restype=None</span>
+
+    <span class="c">#################################################################</span>
+    <span class="k">return</span> <span class="n">PIfunction</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">k</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

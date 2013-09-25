@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.other &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.other</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">from</span> <span class="nn">re</span> <span class="kn">import</span> <span class="n">split</span>
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">copy</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<div class="viewcode-block" id="overWriteCheck"><a class="viewcode-back" href="../../oscaar.html#oscaar.other.overWriteCheck">[docs]</a><span class="k">def</span> <span class="nf">overWriteCheck</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">checkfiles</span><span class="p">,</span> <span class="n">varcheck</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Checks to see if a particular file should be overwritten based on whether varcheck is on or off&quot;&quot;&quot;</span>
+    <span class="n">overcheck</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">checkfiles</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">checkfiles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span> <span class="n">filename</span> <span class="ow">and</span> <span class="n">varcheck</span> <span class="o">==</span> <span class="s">&#39;on&#39;</span><span class="p">:</span>
+            <span class="n">overcheck</span> <span class="o">=</span> <span class="nb">raw_input</span><span class="p">(</span><span class="s">&#39;WARNING: Overwrite /&#39;</span> <span class="o">+</span> <span class="n">filename</span> <span class="o">+</span> <span class="s">&#39;/ ? (Y/n): &#39;</span><span class="p">)</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="n">overcheck</span> <span class="o">==</span> <span class="s">&#39;&#39;</span> <span class="ow">or</span> <span class="n">overcheck</span> <span class="o">==</span> <span class="s">&#39;Y&#39;</span> <span class="ow">or</span> <span class="n">overcheck</span> <span class="o">==</span> <span class="s">&#39;y&#39;</span><span class="p">:</span>
+        <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+<span class="c">#######################################################################</span>
+<span class="c">#######################################################################       </span></div>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for handling dates.</span>
+
+<span class="sd">Contains:</span>
+<span class="sd">   gd2jd  -- converts gregorian date to julian date</span>
+<span class="sd">   jd2gd  -- converts julian date to gregorian date</span>
+
+<span class="sd">Wish list:</span>
+<span class="sd">   Function to convert heliocentric julian date!</span>
+
+
+
+<span class="sd">These functions were taken from Enno Middleberg&#39;s site of useful</span>
+<span class="sd">astronomical python references:</span>
+<span class="sd">http://www.astro.rub.de/middelberg/python/python.html</span>
+
+<span class="sd">&quot;Feel free to download, use, modify and pass on these scripts, but</span>
+<span class="sd">please do not remove my name from it.&quot; --E. Middleberg</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c"># 2009-02-15 13:12 IJC: Converted to importable function</span>
+
+
+<div class="viewcode-block" id="gd2jd"><a class="viewcode-back" href="../../oscaar.html#oscaar.other.gd2jd">[docs]</a><span class="k">def</span> <span class="nf">gd2jd</span><span class="p">(</span><span class="o">*</span><span class="n">date</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;gd2jd.py converts a UT Gregorian date to Julian date.</span>
+<span class="sd">    </span>
+<span class="sd">    Usage: gd2jd.py (2009, 02, 25, 01, 59, 59)</span>
+<span class="sd">    </span>
+<span class="sd">    To get the current Julian date:</span>
+<span class="sd">    import time</span>
+<span class="sd">    gd2jd(time.gmtime())</span>
+<span class="sd">    </span>
+<span class="sd">    Hours, minutesutes and/or seconds can be omitted -- if so, they are</span>
+<span class="sd">    assumed to be zero.</span>
+<span class="sd">    </span>
+<span class="sd">    Year and month are converted to type INT, but all others can be</span>
+<span class="sd">    type FLOAT (standard practice would suggest only the final element</span>
+<span class="sd">    of the date should be float)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="c">#print date</span>
+    <span class="c">#print date[0]</span>
+    <span class="n">date</span> <span class="o">=</span> <span class="n">date</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    
+    <span class="n">date</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;You must enter a date of the form (2009, 02, 25)!&quot;</span>
+        <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span> <span class="n">date</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">==</span><span class="mi">4</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span> <span class="n">date</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">==</span><span class="mi">5</span><span class="p">:</span>
+        <span class="n">date</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    
+    <span class="n">yyyy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">mm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">dd</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">hh</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="n">minutes</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+    <span class="n">sec</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+    <span class="c">#print yyyy,mm,dd,hh,minutes,sec</span>
+    
+    <span class="n">UT</span><span class="o">=</span><span class="n">hh</span><span class="o">+</span><span class="n">minutes</span><span class="o">/</span><span class="mi">60</span><span class="o">+</span><span class="n">sec</span><span class="o">/</span><span class="mi">3600</span>
+    
+    <span class="c">#print &quot;UT=&quot;+`UT`</span>
+    
+    <span class="n">total_seconds</span><span class="o">=</span><span class="n">hh</span><span class="o">*</span><span class="mi">3600</span><span class="o">+</span><span class="n">minutes</span><span class="o">*</span><span class="mi">60</span><span class="o">+</span><span class="n">sec</span>
+    <span class="n">fracday</span><span class="o">=</span><span class="n">total_seconds</span><span class="o">/</span><span class="mi">86400</span>
+    
+    <span class="c">#print &quot;Fractional day: %f&quot; % fracday</span>
+    <span class="c"># print dd,mm,yyyy, hh,minutes,sec, UT</span>
+    
+    <span class="k">if</span> <span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">yyyy</span><span class="o">+</span><span class="n">mm</span><span class="o">-</span><span class="mf">190002.5</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">sig</span><span class="o">=</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">sig</span><span class="o">=-</span><span class="mi">1</span>
+    
+    <span class="n">JD</span> <span class="o">=</span> <span class="mi">367</span><span class="o">*</span><span class="n">yyyy</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="mi">7</span><span class="o">*</span><span class="p">(</span><span class="n">yyyy</span><span class="o">+</span><span class="nb">int</span><span class="p">((</span><span class="n">mm</span><span class="o">+</span><span class="mi">9</span><span class="p">)</span><span class="o">/</span><span class="mi">12</span><span class="p">))</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="mi">275</span><span class="o">*</span><span class="n">mm</span><span class="o">/</span><span class="mi">9</span><span class="p">)</span> <span class="o">+</span> <span class="n">dd</span> <span class="o">+</span> <span class="mf">1721013.5</span> <span class="o">+</span> <span class="n">UT</span><span class="o">/</span><span class="mi">24</span> <span class="o">-</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">sig</span> <span class="o">+</span><span class="mf">0.5</span>
+    
+    <span class="n">months</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;January&quot;</span><span class="p">,</span> <span class="s">&quot;February&quot;</span><span class="p">,</span> <span class="s">&quot;March&quot;</span><span class="p">,</span> <span class="s">&quot;April&quot;</span><span class="p">,</span> <span class="s">&quot;May&quot;</span><span class="p">,</span> <span class="s">&quot;June&quot;</span><span class="p">,</span> <span class="s">&quot;July&quot;</span><span class="p">,</span> <span class="s">&quot;August&quot;</span><span class="p">,</span> <span class="s">&quot;September&quot;</span><span class="p">,</span> <span class="s">&quot;October&quot;</span><span class="p">,</span> <span class="s">&quot;November&quot;</span><span class="p">,</span> <span class="s">&quot;December&quot;</span><span class="p">]</span>
+    
+    <span class="c">#print &quot;\n&quot;+months[mm-1]+&quot; %i, %i, %i:%i:%i UT = JD %f&quot; % (dd, yyyy, hh, minutes, sec, JD),</span>
+    
+    <span class="c"># Now calculate the fractional year. Do we have a leap year?</span>
+    <span class="n">daylist</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">28</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+    <span class="n">daylist2</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">29</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">4</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">400</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+    
+    <span class="n">daysum</span><span class="o">=</span><span class="mi">0</span>
+    <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mm</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">daysum</span><span class="o">=</span><span class="n">daysum</span><span class="o">+</span><span class="n">days</span><span class="p">[</span><span class="n">y</span><span class="p">]</span>
+        <span class="n">daysum</span><span class="o">=</span><span class="n">daysum</span><span class="o">+</span><span class="n">dd</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="n">UT</span><span class="o">/</span><span class="mi">24</span>
+    
+    <span class="k">if</span> <span class="n">days</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">29</span><span class="p">:</span>
+        <span class="n">fracyear</span><span class="o">=</span><span class="n">yyyy</span><span class="o">+</span><span class="n">daysum</span><span class="o">/</span><span class="mi">366</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fracyear</span><span class="o">=</span><span class="n">yyyy</span><span class="o">+</span><span class="n">daysum</span><span class="o">/</span><span class="mi">365</span>
+    <span class="c">#print &quot; = &quot; + `fracyear`+&quot;\n&quot;</span>
+    <span class="k">return</span> <span class="n">JD</span>
+
+</div>
+<div class="viewcode-block" id="jd2gd"><a class="viewcode-back" href="../../oscaar.html#oscaar.other.jd2gd">[docs]</a><span class="k">def</span> <span class="nf">jd2gd</span><span class="p">(</span><span class="n">jd</span><span class="p">,</span><span class="n">returnString</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Task to convert a list of julian dates to gregorian dates</span>
+<span class="sd">    description at http://mathforum.org/library/drmath/view/51907.html</span>
+<span class="sd">    Original algorithm in Jean Meeus, &quot;Astronomical Formulae for</span>
+<span class="sd">    Calculators&quot;</span>
+
+<span class="sd">    2009-02-15 13:36 IJC: Converted to importable, callable function</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Note from author: This script is buggy and reports Julian dates which are </span>
+<span class="sd">    off by a day or two, depending on how far back you go. For example, 11 March </span>
+<span class="sd">    1609 converted to JD will be off by two days. 20th and 21st century seem to </span>
+<span class="sd">    be fine, though.</span>
+
+<span class="sd">    Note from Brett Morris: This conversion routine matches up to the &quot;Numerical </span>
+<span class="sd">    Recipes&quot; in C version from 2010-2100 CE, so I think we&#39;ll be ok for oscaar&#39;s</span>
+<span class="sd">    purposes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">jd</span><span class="o">=</span><span class="n">jd</span><span class="o">+</span><span class="mf">0.5</span>
+    <span class="n">Z</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">jd</span><span class="p">)</span>
+    <span class="n">F</span><span class="o">=</span><span class="n">jd</span><span class="o">-</span><span class="n">Z</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">Z</span><span class="o">-</span><span class="mf">1867216.25</span><span class="p">)</span><span class="o">/</span><span class="mf">36524.25</span><span class="p">)</span>
+    <span class="n">A</span><span class="o">=</span><span class="n">Z</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">alpha</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span>
+    
+    <span class="n">B</span> <span class="o">=</span> <span class="n">A</span> <span class="o">+</span> <span class="mi">1524</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="p">(</span><span class="n">B</span><span class="o">-</span><span class="mf">122.1</span><span class="p">)</span><span class="o">/</span><span class="mf">365.25</span><span class="p">)</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="mf">365.25</span><span class="o">*</span><span class="n">C</span> <span class="p">)</span>
+    <span class="n">E</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="p">(</span><span class="n">B</span><span class="o">-</span><span class="n">D</span><span class="p">)</span><span class="o">/</span><span class="mf">30.6001</span> <span class="p">)</span>
+    
+    <span class="n">dd</span> <span class="o">=</span> <span class="n">B</span> <span class="o">-</span> <span class="n">D</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="mf">30.6001</span><span class="o">*</span><span class="n">E</span><span class="p">)</span> <span class="o">+</span> <span class="n">F</span>
+    
+    <span class="k">if</span> <span class="n">E</span><span class="o">&lt;</span><span class="mf">13.5</span><span class="p">:</span>
+        <span class="n">mm</span><span class="o">=</span><span class="n">E</span><span class="o">-</span><span class="mi">1</span>
+    
+    <span class="k">if</span> <span class="n">E</span><span class="o">&gt;</span><span class="mf">13.5</span><span class="p">:</span>
+        <span class="n">mm</span><span class="o">=</span><span class="n">E</span><span class="o">-</span><span class="mi">13</span>
+    
+    <span class="k">if</span> <span class="n">mm</span><span class="o">&gt;</span><span class="mf">2.5</span><span class="p">:</span>
+        <span class="n">yyyy</span><span class="o">=</span><span class="n">C</span><span class="o">-</span><span class="mi">4716</span>
+    
+    <span class="k">if</span> <span class="n">mm</span><span class="o">&lt;</span><span class="mf">2.5</span><span class="p">:</span>
+        <span class="n">yyyy</span><span class="o">=</span><span class="n">C</span><span class="o">-</span><span class="mi">4715</span>
+    
+    <span class="n">months</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;January&quot;</span><span class="p">,</span> <span class="s">&quot;February&quot;</span><span class="p">,</span> <span class="s">&quot;March&quot;</span><span class="p">,</span> <span class="s">&quot;April&quot;</span><span class="p">,</span> <span class="s">&quot;May&quot;</span><span class="p">,</span> <span class="s">&quot;June&quot;</span><span class="p">,</span> <span class="s">&quot;July&quot;</span><span class="p">,</span> <span class="s">&quot;August&quot;</span><span class="p">,</span> <span class="s">&quot;September&quot;</span><span class="p">,</span> <span class="s">&quot;October&quot;</span><span class="p">,</span> <span class="s">&quot;November&quot;</span><span class="p">,</span> <span class="s">&quot;December&quot;</span><span class="p">]</span>
+    <span class="n">daylist</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">28</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+    <span class="n">daylist2</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">29</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+    
+    <span class="n">h</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">dd</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span>
+    <span class="n">minutes</span><span class="o">=</span><span class="nb">int</span><span class="p">((((</span><span class="n">dd</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span><span class="o">-</span><span class="n">h</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+    <span class="n">sec</span><span class="o">=</span><span class="mi">86400</span><span class="o">*</span><span class="p">(</span><span class="n">dd</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span><span class="o">-</span><span class="n">h</span><span class="o">*</span><span class="mi">3600</span><span class="o">-</span><span class="n">minutes</span><span class="o">*</span><span class="mi">60</span>
+    
+    <span class="c"># Now calculate the fractional year. Do we have a leap year?</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">4</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">400</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+    
+    <span class="n">hh</span> <span class="o">=</span> <span class="mf">24.0</span><span class="o">*</span><span class="p">(</span><span class="n">dd</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">minutes</span> <span class="o">=</span> <span class="mf">60.0</span><span class="o">*</span><span class="p">(</span><span class="n">hh</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">sec</span> <span class="o">=</span> <span class="mf">60.0</span><span class="o">*</span><span class="p">(</span><span class="n">minutes</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>
+    
+    <span class="n">dd</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="o">-</span><span class="p">(</span><span class="n">dd</span><span class="o">%</span><span class="mf">1.0</span><span class="p">))</span>
+    <span class="n">hh</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">hh</span><span class="o">-</span><span class="p">(</span><span class="n">hh</span><span class="o">%</span><span class="mf">1.0</span><span class="p">))</span>
+    <span class="n">minutes</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">minutes</span><span class="o">-</span><span class="p">(</span><span class="n">minutes</span><span class="o">%</span><span class="mf">1.0</span><span class="p">))</span>
+    
+    
+    <span class="c">#print str(jd)+&quot; = &quot;+str(months[mm-1])+ &#39;,&#39; + str(dd) +&#39;,&#39; +str(yyyy)</span>
+    <span class="c">#print str(h).zfill(2)+&quot;:&quot;+str(minutes).zfill(2)+&quot;:&quot;+str(sec).zfill(2)+&quot; UTC&quot;</span>
+    
+    <span class="c">#print (yyyy, mm, dd, hh, minutes, sec)</span>
+    <span class="k">if</span> <span class="n">returnString</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">yyyy</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">mm</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">hh</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">minutes</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="c">#+&#39;:&#39;+str(sec)[0:2].zfill(2)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">yyyy</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="n">dd</span><span class="p">,</span> <span class="n">hh</span><span class="p">,</span> <span class="n">minutes</span><span class="p">,</span> <span class="n">sec</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

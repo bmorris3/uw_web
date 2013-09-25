@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.mathMethods &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.mathMethods</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">oscaar v2.0</span>
+<span class="sd">Module for differential photometry</span>
+
+<span class="sd">Developed by Brett Morris, 2011-2013</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">linalg</span> <span class="k">as</span> <span class="n">LA</span>
+
+
+<div class="viewcode-block" id="ut2jd"><a class="viewcode-back" href="../../oscaar.html#oscaar.mathMethods.ut2jd">[docs]</a><span class="k">def</span> <span class="nf">ut2jd</span><span class="p">(</span><span class="n">ut</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert times from Universal Time (UT) to Julian Date (JD)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ut : string</span>
+<span class="sd">        Time in Universal Time (UT)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    jd : float</span>
+<span class="sd">        Julian Date (JD)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="p">[</span><span class="n">date</span><span class="p">,</span> <span class="n">Time</span><span class="p">]</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;;&#39;</span><span class="p">)</span>
+    <span class="n">Time</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="p">[</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">]</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span>
+    <span class="p">[</span><span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">sec</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">year</span><span class="p">)</span>
+    <span class="n">month</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">month</span><span class="p">)</span>
+    <span class="n">day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">day</span><span class="p">)</span>
+    <span class="n">hour</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour</span><span class="p">)</span>
+    <span class="n">minute</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">minute</span><span class="p">)</span>
+    <span class="n">sec</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">month</span> <span class="o">+=</span> <span class="mi">12</span>
+        <span class="n">year</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">year</span><span class="o">/</span><span class="mi">100</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="o">/</span><span class="mi">4</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">2</span><span class="o">-</span><span class="n">a</span><span class="o">+</span><span class="n">b</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">day</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">365.25</span><span class="o">*</span><span class="p">(</span><span class="n">year</span><span class="o">+</span><span class="mi">4716</span><span class="p">))</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">30.6001</span><span class="o">*</span><span class="p">(</span><span class="n">month</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">years</span> <span class="o">=</span> <span class="n">c</span><span class="o">+</span><span class="n">d</span><span class="o">+</span><span class="n">e</span><span class="o">+</span><span class="n">f</span><span class="o">-</span><span class="mf">1524.5</span>
+    <span class="n">fracOfDay</span> <span class="o">=</span> <span class="p">(</span><span class="n">hour</span><span class="o">/</span><span class="mf">24.</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">minute</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="n">sec</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span>
+    <span class="n">jd</span> <span class="o">=</span> <span class="n">years</span> <span class="o">+</span> <span class="n">fracOfDay</span>
+    <span class="k">return</span> <span class="n">jd</span>
+
+</div>
+<div class="viewcode-block" id="ut2jdSplitAtT"><a class="viewcode-back" href="../../oscaar.html#oscaar.mathMethods.ut2jdSplitAtT">[docs]</a><span class="k">def</span> <span class="nf">ut2jdSplitAtT</span><span class="p">(</span><span class="n">ut</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert times from Universal Time (UT) to Julian Date (JD), splitting</span>
+<span class="sd">    the date and time at the &quot;T&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ut : string</span>
+<span class="sd">        Time in Universal Time (UT)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    jd : float</span>
+<span class="sd">        Julian Date (JD)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="p">[</span><span class="n">date</span><span class="p">,</span> <span class="n">Time</span><span class="p">]</span> <span class="o">=</span> <span class="n">ut</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;T&#39;</span><span class="p">)</span>
+    <span class="n">Time</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="p">[</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">]</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span>
+    <span class="p">[</span><span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">sec</span><span class="p">]</span> <span class="o">=</span> <span class="n">Time</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">year</span><span class="p">)</span>
+    <span class="n">month</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">month</span><span class="p">)</span>
+    <span class="n">day</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">day</span><span class="p">)</span>
+    <span class="n">hour</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">hour</span><span class="p">)</span>
+    <span class="n">minute</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">minute</span><span class="p">)</span>
+    <span class="n">sec</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sec</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">month</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">month</span> <span class="o">+=</span> <span class="mi">12</span>
+        <span class="n">year</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">year</span><span class="o">/</span><span class="mi">100</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">a</span><span class="o">/</span><span class="mi">4</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="mi">2</span><span class="o">-</span><span class="n">a</span><span class="o">+</span><span class="n">b</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">day</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">365.25</span><span class="o">*</span><span class="p">(</span><span class="n">year</span><span class="o">+</span><span class="mi">4716</span><span class="p">))</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="mf">30.6001</span><span class="o">*</span><span class="p">(</span><span class="n">month</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">years</span> <span class="o">=</span> <span class="n">c</span><span class="o">+</span><span class="n">d</span><span class="o">+</span><span class="n">e</span><span class="o">+</span><span class="n">f</span><span class="o">-</span><span class="mf">1524.5</span>
+    <span class="n">fracOfDay</span> <span class="o">=</span> <span class="p">(</span><span class="n">hour</span><span class="o">/</span><span class="mf">24.</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">minute</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span> <span class="o">+</span> <span class="p">(</span><span class="n">sec</span><span class="o">/</span><span class="p">(</span><span class="mi">24</span><span class="o">*</span><span class="mi">60</span><span class="o">*</span><span class="mf">60.</span><span class="p">))</span>
+    <span class="n">jd</span> <span class="o">=</span> <span class="n">years</span> <span class="o">+</span> <span class="n">fracOfDay</span>
+    <span class="k">return</span> <span class="n">jd</span>
+
+</div>
+<div class="viewcode-block" id="regressionScale"><a class="viewcode-back" href="../../oscaar.html#oscaar.mathMethods.regressionScale">[docs]</a><span class="k">def</span> <span class="nf">regressionScale</span><span class="p">(</span><span class="n">comparisonFlux</span><span class="p">,</span> <span class="n">targetFlux</span><span class="p">,</span> <span class="n">time</span><span class="p">,</span> <span class="n">ingress</span><span class="p">,</span> <span class="n">egress</span><span class="p">,</span>
+                    <span class="n">returncoeffs</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Use a least-squares regression to stretch and offset a comparison</span>
+<span class="sd">    star fluxes to scale them to the relative intensity of the target</span>
+<span class="sd">    star. Only do this regression considering the out-of-transit</span>
+<span class="sd">    portions of the light curve.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    comparisonFlux : numpy.ndarray</span>
+<span class="sd">        Flux of a comparison star</span>
+
+<span class="sd">    targetFlux : numpy.ndarray</span>
+<span class="sd">        Flux of the target star</span>
+
+<span class="sd">    time : numpy.ndarray</span>
+<span class="sd">        List of times for each flux measurement in JD</span>
+
+<span class="sd">    ingress : float</span>
+<span class="sd">        Time of ingress (JD, assuming time list is in JD)</span>
+
+<span class="sd">    egress : float</span>
+<span class="sd">        Time of egress (JD, assuming time list is in JD)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    scaledVector : numpy.ndarray</span>
+<span class="sd">        Rescaled version of the comparisonFlux vector using the above</span>
+<span class="sd">        described process</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">outOfTransit</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span> <span class="o">&lt;</span> <span class="n">ingress</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">time</span> <span class="o">&gt;</span> <span class="n">egress</span><span class="p">)</span>
+    <span class="n">regressMatrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">comparisonFlux</span><span class="p">[</span><span class="n">outOfTransit</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">targetFlux</span><span class="p">[</span><span class="n">outOfTransit</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> \
+        <span class="s">&#39;No fluxes marked as &quot;out-of-transit&quot; according to input ingress/egress&#39;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">LA</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">regressMatrix</span><span class="p">,</span> <span class="n">targetFlux</span><span class="p">[</span><span class="n">outOfTransit</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">scaledVector</span> <span class="o">=</span> <span class="n">m</span><span class="o">*</span><span class="n">comparisonFlux</span>
+    <span class="k">if</span> <span class="n">returncoeffs</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">scaledVector</span><span class="p">,</span> <span class="n">m</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">scaledVector</span>
+
+</div>
+<div class="viewcode-block" id="chiSquared"><a class="viewcode-back" href="../../oscaar.html#oscaar.mathMethods.chiSquared">[docs]</a><span class="k">def</span> <span class="nf">chiSquared</span><span class="p">(</span><span class="n">vector1</span><span class="p">,</span> <span class="n">vector2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return :math:`$\chi^2$` (chi-squared) of two vectors&quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">vector1</span><span class="o">-</span><span class="n">vector2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="medianBin"><a class="viewcode-back" href="../../oscaar.html#oscaar.mathMethods.medianBin">[docs]</a><span class="k">def</span> <span class="nf">medianBin</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">medianWidth</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Produce median binning of a flux vector</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    time : list or numpy.ndarray</span>
+<span class="sd">        List of times in time series</span>
+
+<span class="sd">    flux : list or numpy.ndarray</span>
+<span class="sd">        List of fluxes, one for each time in `time` vector</span>
+
+<span class="sd">    medianWidth : int</span>
+<span class="sd">        Width of each bin in units of data points</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    [binnedTime, binnedFlux, binnedStd] : [list, list, list] \</span>
+<span class="sd">            or [numpy.ndarray, numpy.ndarray, numpy.ndarray]</span>
+<span class="sd">        The times, fluxes and uncertainties on each binned point,</span>
+<span class="sd">        where `binnedTime` is the time for each bin, `binnedFlux`</span>
+<span class="sd">        is the median flux in each bin, and `binnedStd` is the standard</span>
+<span class="sd">        deviation of the points within each bin</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">numberBins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">time</span><span class="p">)</span><span class="o">/</span><span class="n">medianWidth</span>
+    <span class="n">binnedTime</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">numberBins</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">binnedFlux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">numberBins</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">binnedStd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">numberBins</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">numberBins</span><span class="p">):</span>
+        <span class="n">fluxInBin</span> <span class="o">=</span> <span class="n">flux</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">medianWidth</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">medianWidth</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">binnedTime</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">i</span><span class="o">*</span><span class="n">medianWidth</span><span class="p">:(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">medianWidth</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">binnedFlux</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">fluxInBin</span><span class="p">)</span>
+        <span class="n">binnedStd</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">fluxInBin</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">binnedStd</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

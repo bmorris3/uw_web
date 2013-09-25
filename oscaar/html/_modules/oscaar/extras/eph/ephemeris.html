@@ -1,0 +1,477 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.extras.eph.ephemeris &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.extras.eph.ephemeris</h1><div class="highlight"><pre>
+<span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">Created on Feb 19, 2013</span>
+
+<span class="sd">methods for calculating ephemerides</span>
+
+<span class="sd">@author: bmmorris</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="kn">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">colorsys</span>
+
+<div class="viewcode-block" id="eph"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph">[docs]</a><span class="k">class</span> <span class="nc">eph</span><span class="p">():</span>
+	
+	<span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">startSem</span><span class="p">,</span><span class="n">endSem</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">startSem</span> <span class="o">=</span> <span class="n">startSem</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">endSem</span> <span class="o">=</span> <span class="n">endSem</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">allKeysT</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">allKeysE</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bufferTime</span> <span class="o">=</span> <span class="mf">0.1</span>  <span class="c">## 0.1666 JD = 4 hours (four hours between sunset/sunrise and acceptable midtransit)</span>
+						  <span class="c">#0.08 ## JD = 2 hrs; only count complete transits with space bufferTime before and after transit</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">UToffset</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.43184</span> <span class="c">## Hawaiian time zone conversion from UTC: -0.416666 = -10 hours (UTC), </span>
+		<span class="c">## Convert 155.46 deg to hours: 10.36 hours, or 0.43184 days (JD)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">bars</span> <span class="o">=</span> <span class="mf">0.08</span>
+<div class="viewcode-block" id="eph.addStar"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.addStar">[docs]</a>	<span class="k">def</span> <span class="nf">addStar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">Tc</span><span class="p">,</span><span class="n">pmTc</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">pmP</span><span class="p">,</span><span class="n">V</span><span class="p">,</span><span class="n">K</span><span class="p">):</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{}</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;Tc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Tc</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;pmTc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pmTc</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;P&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">P</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;pmP&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pmP</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;V&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">V</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;K&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">K</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;MidT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midTransit</span><span class="p">(</span><span class="n">Tc</span><span class="p">,</span><span class="n">pmTc</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">pmP</span><span class="p">,</span><span class="n">name</span><span class="p">)</span>
+		<span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)][</span><span class="s">&#39;MidE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midEclipse</span><span class="p">(</span><span class="n">Tc</span><span class="p">,</span><span class="n">pmTc</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">pmP</span><span class="p">,</span><span class="n">name</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="eph.midTransit"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.midTransit">[docs]</a>	<span class="k">def</span> <span class="nf">midTransit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">Tc</span><span class="p">,</span> <span class="n">pmTc</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">pmP</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+		<span class="n">timeRange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">5000</span><span class="p">)</span>
+		<span class="n">transitTimes</span> <span class="o">=</span> <span class="n">Tc</span> <span class="o">+</span> <span class="n">P</span><span class="o">*</span><span class="n">timeRange</span>
+		<span class="n">pmTransitTimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pmTc</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">pmP</span><span class="o">*</span><span class="n">timeRange</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+		<span class="n">transitTimesInSem</span> <span class="o">=</span> <span class="n">transitTimes</span><span class="p">[(</span><span class="n">transitTimes</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">endSem</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">transitTimes</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">startSem</span><span class="p">)]</span><span class="c">#,pmTransitTimes[(pmTransitTimes &lt; self.endSem)*(pmTransitTimes &gt; self.startSem)][0][0]</span>
+		<span class="n">transitTimesInSemOffset</span> <span class="o">=</span> <span class="n">transitTimesInSem</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">UToffset</span>	<span class="c">## offset for hawaiian time</span>
+		<span class="n">transitTimesAtNight</span> <span class="o">=</span> <span class="n">transitTimesInSem</span><span class="p">[(</span><span class="n">transitTimesInSemOffset</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">transitTimesInSemOffset</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.25</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">bufferTime</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">transitTimesInSemOffset</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">transitTimesInSemOffset</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.75</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">bufferTime</span><span class="p">)]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">transitTimesAtNight</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">allKeysT</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">transitTimesAtNight</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">transitTimesAtNight</span>
+	</div>
+<div class="viewcode-block" id="eph.midEclipse"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.midEclipse">[docs]</a>	<span class="k">def</span> <span class="nf">midEclipse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">Tc</span><span class="p">,</span> <span class="n">pmTc</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">pmP</span><span class="p">,</span><span class="n">name</span><span class="p">):</span>
+		<span class="n">timeRange</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">5000</span><span class="p">)</span>
+		<span class="n">eclipseTimes</span> <span class="o">=</span> <span class="n">Tc</span> <span class="o">+</span> <span class="n">P</span><span class="o">*</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">+</span> <span class="n">timeRange</span><span class="p">)</span>
+		<span class="n">pmEclipseTimes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pmTc</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">pmP</span><span class="o">*</span><span class="n">timeRange</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+		<span class="n">eclipseTimesInSem</span> <span class="o">=</span> <span class="n">eclipseTimes</span><span class="p">[(</span><span class="n">eclipseTimes</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">endSem</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">eclipseTimes</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">startSem</span><span class="p">)]</span><span class="c">#,pmEclipseTimes[(pmEclipseTimes &lt; self.endSem)*(pmEclipseTimes &gt; self.startSem)][0][0]</span>
+		<span class="n">eclipseTimesInSemOffset</span> <span class="o">=</span> <span class="n">eclipseTimesInSem</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">UToffset</span>	<span class="c">## offset for hawaiian time</span>
+		<span class="n">eclipseTimesAtNight</span> <span class="o">=</span> <span class="n">eclipseTimesInSem</span><span class="p">[(</span><span class="n">eclipseTimesInSemOffset</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">eclipseTimesInSemOffset</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">0.25</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">bufferTime</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">eclipseTimesInSemOffset</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">eclipseTimesInSemOffset</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.75</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">bufferTime</span><span class="p">)]</span>
+		<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">eclipseTimesAtNight</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">allKeysE</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">eclipseTimesAtNight</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">eclipseTimesAtNight</span>
+	
+<span class="c">#	def midEclipseOld(self,Tc, pmTc, P, pmP,name):</span>
+<span class="c">#		timeRange = np.arange(0,5000)</span>
+<span class="c">#		eclipseTimes = Tc + P*(timeRange + 0.5)</span>
+<span class="c">#		pmEclipseTimes = np.sqrt(pmTc**2 + (pmP*timeRange)**2)</span>
+<span class="c">#		return eclipseTimes[(eclipseTimes &lt; self.endSem)*(eclipseTimes &gt; self.startSem)],pmEclipseTimes[(pmEclipseTimes &lt; self.endSem)*(pmEclipseTimes &gt; self.startSem)]</span>
+</div>
+<div class="viewcode-block" id="eph.getMidT"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.getMidT">[docs]</a>	<span class="k">def</span> <span class="nf">getMidT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">star</span><span class="p">)][</span><span class="s">&#39;MidT&#39;</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="eph.getMidE"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.getMidE">[docs]</a>	<span class="k">def</span> <span class="nf">getMidE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">star</span><span class="p">)][</span><span class="s">&#39;MidE&#39;</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="eph.getVmag"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.getVmag">[docs]</a>	<span class="k">def</span> <span class="nf">getVmag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">star</span><span class="p">)][</span><span class="s">&#39;V&#39;</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="eph.getAllVmags"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.getAllVmags">[docs]</a>	<span class="k">def</span> <span class="nf">getAllVmags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">Vmags</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">:</span>
+			<span class="n">Vmags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;V&#39;</span><span class="p">])</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Vmags</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="eph.getKmag"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.getKmag">[docs]</a>	<span class="k">def</span> <span class="nf">getKmag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+		<span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">star</span><span class="p">)][</span><span class="s">&#39;K&#39;</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="eph.getAllKmags"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.getAllKmags">[docs]</a>	<span class="k">def</span> <span class="nf">getAllKmags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+		<span class="n">Kmags</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">:</span>
+			<span class="n">Kmags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;K&#39;</span><span class="p">])</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Kmags</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="eph.plotTransits"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.plotTransits">[docs]</a>	<span class="k">def</span> <span class="nf">plotTransits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">format</span><span class="p">,</span><span class="n">alphaSetting</span><span class="p">,</span><span class="n">scaleSize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">showLabels</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">showMags</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">yOffset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">get_color</span><span class="p">(</span><span class="n">color</span><span class="p">):</span>
+			<span class="k">for</span> <span class="n">hue</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color</span><span class="p">):</span>
+				<span class="n">hue</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="n">hue</span> <span class="o">/</span> <span class="n">color</span>
+				<span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">colorsys</span><span class="o">.</span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">230</span><span class="p">)]</span>
+				<span class="k">yield</span> <span class="s">&quot;#{0:02x}{1:02x}{2:02x}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">col</span><span class="p">)</span>
+		<span class="n">color</span> <span class="o">=</span> <span class="n">get_color</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">))</span>
+		<span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">:</span>
+			<span class="n">acolor</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+			<span class="c">#plt.plot(self.getMidT(star),np.zeros_like(self.getMidT(star)),format,alpha=alphaSetting,label=star)</span>
+			<span class="k">if</span> <span class="n">scaleSize</span><span class="p">:</span>
+				<span class="c">#mags = 15000./self.getAllVmags()**2#self.getVmag(star)</span>
+				<span class="n">mags</span> <span class="o">=</span> <span class="mf">500000.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">getAllKmags</span><span class="p">()</span><span class="o">**</span><span class="mi">4</span><span class="c">#20000./self.getAllKmags()**2.5</span>
+				<span class="n">axis</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">)),</span><span class="n">color</span><span class="o">=</span><span class="n">acolor</span><span class="p">,</span><span class="n">s</span><span class="o">=</span><span class="n">mags</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">star</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="n">alphaSetting</span><span class="p">)</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">))</span> <span class="o">+</span> <span class="n">yOffset</span><span class="p">,</span><span class="n">xerr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bars</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">star</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">acolor</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="n">format</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="n">alphaSetting</span><span class="p">)</span>
+
+
+			<span class="k">if</span> <span class="n">showMags</span><span class="p">:</span>
+				<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">star</span><span class="o">+</span><span class="s">&#39;, $K_{mag} = &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getKmag</span><span class="p">(</span><span class="n">star</span><span class="p">))</span><span class="o">+</span><span class="s">&#39;$&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">)))]</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">star</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">)))]</span>
+			<span class="k">if</span> <span class="n">showLabels</span><span class="p">:</span>
+				<span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidT</span><span class="p">(</span><span class="n">star</span><span class="p">))</span> <span class="o">+</span> <span class="n">yOffset</span><span class="p">):</span>
+					<span class="n">axis</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+				        <span class="n">label</span><span class="p">,</span><span class="n">xy</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">xytext</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">),</span> <span class="n">textcoords</span> <span class="o">=</span> <span class="s">&#39;offset points&#39;</span><span class="p">,</span> <span class="n">ha</span> <span class="o">=</span> <span class="s">&#39;left&#39;</span><span class="p">,</span> <span class="n">va</span> <span class="o">=</span> <span class="s">&#39;bottom&#39;</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">)</span>
+						
+		<span class="n">axis</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">numpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+		<span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+			<span class="k">return</span> <span class="s">&#39;Cursor: &#39;</span><span class="o">+</span><span class="n">jd2gd</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">returnString</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; UT&#39;</span>
+		<span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+</div>
+<div class="viewcode-block" id="eph.plotEclipses"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.plotEclipses">[docs]</a>	<span class="k">def</span> <span class="nf">plotEclipses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">format</span><span class="p">,</span><span class="n">alphaSetting</span><span class="p">,</span><span class="n">showLabels</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">showMags</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">yOffset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+		<span class="k">def</span> <span class="nf">get_color</span><span class="p">(</span><span class="n">color</span><span class="p">):</span>
+			<span class="k">for</span> <span class="n">hue</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">color</span><span class="p">):</span>
+				<span class="n">hue</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">*</span> <span class="n">hue</span> <span class="o">/</span> <span class="n">color</span>
+				<span class="n">col</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">colorsys</span><span class="o">.</span><span class="n">hsv_to_rgb</span><span class="p">(</span><span class="n">hue</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">230</span><span class="p">)]</span>
+				<span class="k">yield</span> <span class="s">&quot;#{0:02x}{1:02x}{2:02x}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">col</span><span class="p">)</span>
+		<span class="n">color</span> <span class="o">=</span> <span class="n">get_color</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">))</span>
+		<span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">stars</span><span class="p">:</span>
+			<span class="n">acolor</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+			<span class="c">#plt.plot(self.getMidT(star),np.zeros_like(self.getMidT(star)),format,alpha=alphaSetting,label=star)</span>
+			<span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidE</span><span class="p">(</span><span class="n">star</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidE</span><span class="p">(</span><span class="n">star</span><span class="p">))</span> <span class="o">+</span> <span class="n">yOffset</span><span class="p">,</span><span class="n">xerr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bars</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">acolor</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="n">format</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="n">alphaSetting</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">star</span><span class="p">)</span>
+
+			<span class="k">if</span> <span class="n">showMags</span><span class="p">:</span>
+				<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">star</span><span class="o">+</span><span class="s">&#39;, $V_{mag} = &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getVmag</span><span class="p">(</span><span class="n">star</span><span class="p">))</span><span class="o">+</span><span class="s">&#39;$&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidE</span><span class="p">(</span><span class="n">star</span><span class="p">)))]</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="n">star</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidE</span><span class="p">(</span><span class="n">star</span><span class="p">)))]</span>
+			<span class="k">if</span> <span class="n">showLabels</span><span class="p">:</span>
+				<span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">getMidE</span><span class="p">(</span><span class="n">star</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getMidE</span><span class="p">(</span><span class="n">star</span><span class="p">))</span> <span class="o">+</span> <span class="n">yOffset</span><span class="p">):</span>
+					<span class="n">axis</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
+				        <span class="n">label</span><span class="p">,</span> <span class="n">xy</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="n">xytext</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">),</span><span class="n">textcoords</span> <span class="o">=</span> <span class="s">&#39;offset points&#39;</span><span class="p">,</span> <span class="n">ha</span> <span class="o">=</span> <span class="s">&#39;left&#39;</span><span class="p">,</span> <span class="n">va</span> <span class="o">=</span> <span class="s">&#39;bottom&#39;</span><span class="p">,</span> <span class="n">rotation</span><span class="o">=</span><span class="mi">45</span><span class="p">)</span>
+
+		<span class="n">axis</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">numpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+		
+		<span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+			<span class="k">return</span> <span class="s">&#39;Cursor: &#39;</span><span class="o">+</span><span class="n">jd2gd</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">returnString</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; UT&#39;</span>
+		<span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+	</div>
+<div class="viewcode-block" id="eph.IDdoubleEclipses"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.IDdoubleEclipses">[docs]</a>	<span class="k">def</span> <span class="nf">IDdoubleEclipses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;-&#39;</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;Identify nights with two well separated transits&#39;&#39;&#39;</span>
+		<span class="n">doubleNights</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">goodNights</span> <span class="o">=</span> <span class="p">[]</span>
+		
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">)):</span>
+			<span class="k">for</span> <span class="n">otherTime</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">)):</span>
+				<span class="k">if</span> <span class="n">time</span> <span class="o">!=</span> <span class="n">otherTime</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">otherTime</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+					<span class="n">doubleNights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">time</span><span class="p">])</span>
+					<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">otherTime</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.16</span><span class="p">:</span>
+						<span class="n">goodNights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">time</span><span class="p">])</span>
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">goodNights</span><span class="p">:</span>
+			<span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="n">time</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="n">ls</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">goodNights</span><span class="p">)</span>
+	</div>
+<div class="viewcode-block" id="eph.IDdoubleTransits"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.IDdoubleTransits">[docs]</a>	<span class="k">def</span> <span class="nf">IDdoubleTransits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;-&#39;</span><span class="p">):</span>
+		<span class="sd">&#39;&#39;&#39;Identify nights with two well separated transits&#39;&#39;&#39;</span>
+		<span class="n">doubleNights</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">goodNights</span> <span class="o">=</span> <span class="p">[]</span>
+		
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">)):</span>
+			<span class="k">for</span> <span class="n">otherTime</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">)):</span>
+				<span class="k">if</span> <span class="n">time</span> <span class="o">!=</span> <span class="n">otherTime</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">otherTime</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+					<span class="n">doubleNights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">])</span>
+					<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">otherTime</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.16</span><span class="p">:</span>
+						<span class="n">goodNights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">])</span>
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">goodNights</span><span class="p">:</span>
+			<span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="n">time</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="n">ls</span><span class="p">)</span>
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">goodNights</span><span class="p">)</span>		
+	</div>
+<div class="viewcode-block" id="eph.IDdoubles"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.eph.IDdoubles">[docs]</a>	<span class="k">def</span> <span class="nf">IDdoubles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">axis</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;-&#39;</span><span class="p">):</span>
+		<span class="n">doubleNights</span> <span class="o">=</span> <span class="p">[]</span>
+		<span class="n">goodNights</span> <span class="o">=</span> <span class="p">[]</span>
+		
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">)):</span>
+			<span class="k">for</span> <span class="n">otherTime</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">)):</span>
+				<span class="k">if</span> <span class="n">time</span> <span class="o">!=</span> <span class="n">otherTime</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">otherTime</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">:</span>
+					<span class="n">doubleNights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">])</span>
+					<span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">]</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidE</span><span class="p">[</span><span class="n">otherTime</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mf">0.11</span><span class="p">:</span>
+						<span class="n">goodNights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allMidT</span><span class="p">[</span><span class="n">time</span><span class="p">])</span>
+		<span class="k">for</span> <span class="n">time</span> <span class="ow">in</span> <span class="n">goodNights</span><span class="p">:</span>
+			<span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="n">time</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="n">ls</span><span class="p">)</span>		
+		<span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">goodNights</span><span class="p">)</span>
+					</div></div>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Functions for handling dates.</span>
+
+<span class="sd">Contains:</span>
+<span class="sd">   gd2jd  -- converts gregorian date to julian date</span>
+<span class="sd">   jd2gd  -- converts julian date to gregorian date</span>
+
+<span class="sd">Wish list:</span>
+<span class="sd">   Function to convert heliocentric julian date!</span>
+
+
+
+<span class="sd">These functions were taken from Enno Middleberg&#39;s site of useful</span>
+<span class="sd">astronomical python references:</span>
+<span class="sd">http://www.astro.rub.de/middelberg/python/python.html</span>
+
+<span class="sd">&quot;Feel free to download, use, modify and pass on these scripts, but</span>
+<span class="sd">please do not remove my name from it.&quot; --E. Middleberg</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c"># 2009-02-15 13:12 IJC: Converted to importable function</span>
+
+
+<div class="viewcode-block" id="gd2jd"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.gd2jd">[docs]</a><span class="k">def</span> <span class="nf">gd2jd</span><span class="p">(</span><span class="o">*</span><span class="n">date</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;gd2jd.py converts a UT Gregorian date to Julian date.</span>
+<span class="sd">	</span>
+<span class="sd">	Usage: gd2jd.py (2009, 02, 25, 01, 59, 59)</span>
+<span class="sd">	</span>
+<span class="sd">	To get the current Julian date:</span>
+<span class="sd">	import time</span>
+<span class="sd">	gd2jd(time.gmtime())</span>
+<span class="sd">	</span>
+<span class="sd">	Hours, minutesutes and/or seconds can be omitted -- if so, they are</span>
+<span class="sd">	assumed to be zero.</span>
+<span class="sd">	</span>
+<span class="sd">	Year and month are converted to type INT, but all others can be</span>
+<span class="sd">	type FLOAT (standard practice would suggest only the final element</span>
+<span class="sd">	of the date should be float)</span>
+<span class="sd">		&quot;&quot;&quot;</span>
+	<span class="c">#print date</span>
+	<span class="c">#print date[0]</span>
+	<span class="n">date</span> <span class="o">=</span> <span class="n">date</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+	
+	<span class="n">date</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">date</span><span class="p">)</span>
+	
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">:</span>
+		<span class="k">print</span> <span class="s">&quot;You must enter a date of the form (2009, 02, 25)!&quot;</span>
+		<span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+		<span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span> <span class="n">date</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">==</span><span class="mi">4</span><span class="p">:</span>
+		<span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span> <span class="n">date</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+	<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">date</span><span class="p">)</span><span class="o">==</span><span class="mi">5</span><span class="p">:</span>
+		<span class="n">date</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+	
+	<span class="n">yyyy</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+	<span class="n">mm</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+	<span class="n">dd</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+	<span class="n">hh</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+	<span class="n">minutes</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+	<span class="n">sec</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">date</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+	<span class="c">#print yyyy,mm,dd,hh,minutes,sec</span>
+	
+	<span class="n">UT</span><span class="o">=</span><span class="n">hh</span><span class="o">+</span><span class="n">minutes</span><span class="o">/</span><span class="mi">60</span><span class="o">+</span><span class="n">sec</span><span class="o">/</span><span class="mi">3600</span>
+	
+	<span class="c">#print &quot;UT=&quot;+`UT`</span>
+	
+	<span class="n">total_seconds</span><span class="o">=</span><span class="n">hh</span><span class="o">*</span><span class="mi">3600</span><span class="o">+</span><span class="n">minutes</span><span class="o">*</span><span class="mi">60</span><span class="o">+</span><span class="n">sec</span>
+	<span class="n">fracday</span><span class="o">=</span><span class="n">total_seconds</span><span class="o">/</span><span class="mi">86400</span>
+	
+	<span class="c">#print &quot;Fractional day: %f&quot; % fracday</span>
+	<span class="c"># print dd,mm,yyyy, hh,minutes,sec, UT</span>
+	
+	<span class="k">if</span> <span class="p">(</span><span class="mi">100</span><span class="o">*</span><span class="n">yyyy</span><span class="o">+</span><span class="n">mm</span><span class="o">-</span><span class="mf">190002.5</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+		<span class="n">sig</span><span class="o">=</span><span class="mi">1</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">sig</span><span class="o">=-</span><span class="mi">1</span>
+	
+	<span class="n">JD</span> <span class="o">=</span> <span class="mi">367</span><span class="o">*</span><span class="n">yyyy</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="mi">7</span><span class="o">*</span><span class="p">(</span><span class="n">yyyy</span><span class="o">+</span><span class="nb">int</span><span class="p">((</span><span class="n">mm</span><span class="o">+</span><span class="mi">9</span><span class="p">)</span><span class="o">/</span><span class="mi">12</span><span class="p">))</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="mi">275</span><span class="o">*</span><span class="n">mm</span><span class="o">/</span><span class="mi">9</span><span class="p">)</span> <span class="o">+</span> <span class="n">dd</span> <span class="o">+</span> <span class="mf">1721013.5</span> <span class="o">+</span> <span class="n">UT</span><span class="o">/</span><span class="mi">24</span> <span class="o">-</span> <span class="mf">0.5</span><span class="o">*</span><span class="n">sig</span> <span class="o">+</span><span class="mf">0.5</span>
+	
+	<span class="n">months</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;January&quot;</span><span class="p">,</span> <span class="s">&quot;February&quot;</span><span class="p">,</span> <span class="s">&quot;March&quot;</span><span class="p">,</span> <span class="s">&quot;April&quot;</span><span class="p">,</span> <span class="s">&quot;May&quot;</span><span class="p">,</span> <span class="s">&quot;June&quot;</span><span class="p">,</span> <span class="s">&quot;July&quot;</span><span class="p">,</span> <span class="s">&quot;August&quot;</span><span class="p">,</span> <span class="s">&quot;September&quot;</span><span class="p">,</span> <span class="s">&quot;October&quot;</span><span class="p">,</span> <span class="s">&quot;November&quot;</span><span class="p">,</span> <span class="s">&quot;December&quot;</span><span class="p">]</span>
+	
+	<span class="c">#print &quot;\n&quot;+months[mm-1]+&quot; %i, %i, %i:%i:%i UT = JD %f&quot; % (dd, yyyy, hh, minutes, sec, JD),</span>
+	
+	<span class="c"># Now calculate the fractional year. Do we have a leap year?</span>
+	<span class="n">daylist</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">28</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+	<span class="n">daylist2</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">29</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">4</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+	<span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">400</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+	<span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+	
+	<span class="n">daysum</span><span class="o">=</span><span class="mi">0</span>
+	<span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mm</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+		<span class="n">daysum</span><span class="o">=</span><span class="n">daysum</span><span class="o">+</span><span class="n">days</span><span class="p">[</span><span class="n">y</span><span class="p">]</span>
+		<span class="n">daysum</span><span class="o">=</span><span class="n">daysum</span><span class="o">+</span><span class="n">dd</span><span class="o">-</span><span class="mi">1</span><span class="o">+</span><span class="n">UT</span><span class="o">/</span><span class="mi">24</span>
+	
+	<span class="k">if</span> <span class="n">days</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">==</span><span class="mi">29</span><span class="p">:</span>
+		<span class="n">fracyear</span><span class="o">=</span><span class="n">yyyy</span><span class="o">+</span><span class="n">daysum</span><span class="o">/</span><span class="mi">366</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">fracyear</span><span class="o">=</span><span class="n">yyyy</span><span class="o">+</span><span class="n">daysum</span><span class="o">/</span><span class="mi">365</span>
+	<span class="c">#print &quot; = &quot; + `fracyear`+&quot;\n&quot;</span>
+	<span class="k">return</span> <span class="n">JD</span>
+
+</div>
+<div class="viewcode-block" id="jd2gd"><a class="viewcode-back" href="../../../../oscaar.extras.eph.html#oscaar.extras.eph.ephemeris.jd2gd">[docs]</a><span class="k">def</span> <span class="nf">jd2gd</span><span class="p">(</span><span class="n">jd</span><span class="p">,</span><span class="n">returnString</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;Task to convert a list of julian dates to gregorian dates</span>
+<span class="sd">    description at http://mathforum.org/library/drmath/view/51907.html</span>
+<span class="sd">    Original algorithm in Jean Meeus, &quot;Astronomical Formulae for</span>
+<span class="sd">    Calculators&quot;</span>
+
+<span class="sd">    2009-02-15 13:36 IJC: Converted to importable, callable function</span>
+<span class="sd">    </span>
+<span class="sd">    </span>
+<span class="sd">    Note from author: This script is buggy and reports Julian dates which are </span>
+<span class="sd">    off by a day or two, depending on how far back you go. For example, 11 March </span>
+<span class="sd">    1609 converted to JD will be off by two days. 20th and 21st century seem to </span>
+<span class="sd">    be fine, though.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+	<span class="n">jd</span><span class="o">=</span><span class="n">jd</span><span class="o">+</span><span class="mf">0.5</span>
+	<span class="n">Z</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">jd</span><span class="p">)</span>
+	<span class="n">F</span><span class="o">=</span><span class="n">jd</span><span class="o">-</span><span class="n">Z</span>
+	<span class="n">alpha</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">Z</span><span class="o">-</span><span class="mf">1867216.25</span><span class="p">)</span><span class="o">/</span><span class="mf">36524.25</span><span class="p">)</span>
+	<span class="n">A</span><span class="o">=</span><span class="n">Z</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">alpha</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="n">alpha</span><span class="o">/</span><span class="mi">4</span><span class="p">)</span>
+	
+	<span class="n">B</span> <span class="o">=</span> <span class="n">A</span> <span class="o">+</span> <span class="mi">1524</span>
+	<span class="n">C</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="p">(</span><span class="n">B</span><span class="o">-</span><span class="mf">122.1</span><span class="p">)</span><span class="o">/</span><span class="mf">365.25</span><span class="p">)</span>
+	<span class="n">D</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="mf">365.25</span><span class="o">*</span><span class="n">C</span> <span class="p">)</span>
+	<span class="n">E</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span> <span class="p">(</span><span class="n">B</span><span class="o">-</span><span class="n">D</span><span class="p">)</span><span class="o">/</span><span class="mf">30.6001</span> <span class="p">)</span>
+	
+	<span class="n">dd</span> <span class="o">=</span> <span class="n">B</span> <span class="o">-</span> <span class="n">D</span> <span class="o">-</span> <span class="nb">int</span><span class="p">(</span><span class="mf">30.6001</span><span class="o">*</span><span class="n">E</span><span class="p">)</span> <span class="o">+</span> <span class="n">F</span>
+	
+	<span class="k">if</span> <span class="n">E</span><span class="o">&lt;</span><span class="mf">13.5</span><span class="p">:</span>
+		<span class="n">mm</span><span class="o">=</span><span class="n">E</span><span class="o">-</span><span class="mi">1</span>
+	
+	<span class="k">if</span> <span class="n">E</span><span class="o">&gt;</span><span class="mf">13.5</span><span class="p">:</span>
+		<span class="n">mm</span><span class="o">=</span><span class="n">E</span><span class="o">-</span><span class="mi">13</span>
+	
+	<span class="k">if</span> <span class="n">mm</span><span class="o">&gt;</span><span class="mf">2.5</span><span class="p">:</span>
+		<span class="n">yyyy</span><span class="o">=</span><span class="n">C</span><span class="o">-</span><span class="mi">4716</span>
+	
+	<span class="k">if</span> <span class="n">mm</span><span class="o">&lt;</span><span class="mf">2.5</span><span class="p">:</span>
+		<span class="n">yyyy</span><span class="o">=</span><span class="n">C</span><span class="o">-</span><span class="mi">4715</span>
+	
+	<span class="n">months</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;January&quot;</span><span class="p">,</span> <span class="s">&quot;February&quot;</span><span class="p">,</span> <span class="s">&quot;March&quot;</span><span class="p">,</span> <span class="s">&quot;April&quot;</span><span class="p">,</span> <span class="s">&quot;May&quot;</span><span class="p">,</span> <span class="s">&quot;June&quot;</span><span class="p">,</span> <span class="s">&quot;July&quot;</span><span class="p">,</span> <span class="s">&quot;August&quot;</span><span class="p">,</span> <span class="s">&quot;September&quot;</span><span class="p">,</span> <span class="s">&quot;October&quot;</span><span class="p">,</span> <span class="s">&quot;November&quot;</span><span class="p">,</span> <span class="s">&quot;December&quot;</span><span class="p">]</span>
+	<span class="n">daylist</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">28</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+	<span class="n">daylist2</span><span class="o">=</span><span class="p">[</span><span class="mi">31</span><span class="p">,</span><span class="mi">29</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">31</span><span class="p">]</span>
+	
+	<span class="n">h</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">dd</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span>
+	<span class="n">minutes</span><span class="o">=</span><span class="nb">int</span><span class="p">((((</span><span class="n">dd</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span><span class="o">*</span><span class="mi">24</span><span class="p">)</span><span class="o">-</span><span class="n">h</span><span class="p">)</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+	<span class="n">sec</span><span class="o">=</span><span class="mi">86400</span><span class="o">*</span><span class="p">(</span><span class="n">dd</span><span class="o">-</span><span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">))</span><span class="o">-</span><span class="n">h</span><span class="o">*</span><span class="mi">3600</span><span class="o">-</span><span class="n">minutes</span><span class="o">*</span><span class="mi">60</span>
+	
+	<span class="c"># Now calculate the fractional year. Do we have a leap year?</span>
+	<span class="k">if</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">4</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+	<span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">400</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+	<span class="k">elif</span> <span class="p">(</span><span class="n">yyyy</span><span class="o">%</span><span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">days</span><span class="o">=</span><span class="n">daylist2</span>
+	
+	<span class="n">hh</span> <span class="o">=</span> <span class="mf">24.0</span><span class="o">*</span><span class="p">(</span><span class="n">dd</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>
+	<span class="n">minutes</span> <span class="o">=</span> <span class="mf">60.0</span><span class="o">*</span><span class="p">(</span><span class="n">hh</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>
+	<span class="n">sec</span> <span class="o">=</span> <span class="mf">60.0</span><span class="o">*</span><span class="p">(</span><span class="n">minutes</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>
+	
+	<span class="n">dd</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="o">-</span><span class="p">(</span><span class="n">dd</span><span class="o">%</span><span class="mf">1.0</span><span class="p">))</span>
+	<span class="n">hh</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">hh</span><span class="o">-</span><span class="p">(</span><span class="n">hh</span><span class="o">%</span><span class="mf">1.0</span><span class="p">))</span>
+	<span class="n">minutes</span> <span class="o">=</span>  <span class="nb">int</span><span class="p">(</span><span class="n">minutes</span><span class="o">-</span><span class="p">(</span><span class="n">minutes</span><span class="o">%</span><span class="mf">1.0</span><span class="p">))</span>
+	
+	
+	<span class="c">#print str(jd)+&quot; = &quot;+str(months[mm-1])+ &#39;,&#39; + str(dd) +&#39;,&#39; +str(yyyy)</span>
+	<span class="c">#print str(h).zfill(2)+&quot;:&quot;+str(minutes).zfill(2)+&quot;:&quot;+str(sec).zfill(2)+&quot; UTC&quot;</span>
+	
+	<span class="c">#print (yyyy, mm, dd, hh, minutes, sec)</span>
+	<span class="k">if</span> <span class="n">returnString</span><span class="p">:</span>
+		<span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">yyyy</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">mm</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">dd</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">hh</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;:&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">minutes</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="c">#+&#39;:&#39;+str(sec)[0:2].zfill(2)</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="k">return</span> <span class="p">(</span><span class="n">yyyy</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="n">dd</span><span class="p">,</span> <span class="n">hh</span><span class="p">,</span> <span class="n">minutes</span><span class="p">,</span> <span class="n">sec</span><span class="p">)</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

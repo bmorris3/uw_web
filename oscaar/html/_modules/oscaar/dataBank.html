@@ -1,0 +1,1108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.dataBank &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.dataBank</h1><div class="highlight"><pre>
+<span class="sd">&#39;&#39;&#39;oscaar v2.0 </span>
+<span class="sd">    Module for differential photometry</span>
+<span class="sd">    Developed by Brett Morris, 2011-2013 &amp; minor modifications by Luuk Visser </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">optimize</span>
+<span class="kn">from</span> <span class="nn">glob</span> <span class="kn">import</span> <span class="n">glob</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">oscaar</span>
+<span class="kn">import</span> <span class="nn">mathMethods</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="n">oscaarpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">oscaar</span><span class="o">.</span><span class="n">__file__</span><span class="p">))</span>
+<span class="n">oscaarpathplus</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">oscaarpath</span><span class="p">,</span><span class="s">&#39;extras&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="dataBank"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank">[docs]</a><span class="k">class</span> <span class="nc">dataBank</span><span class="p">:</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Methods for easily storing and accessing information from the entire </span>
+<span class="sd">    differential photometry process with OSCAAR.</span>
+<span class="sd">    </span>
+<span class="sd">    Core Developer: Brett Morris</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the inital guesses for the initial centroids of the stars from the DS9 regions file, </span>
+<span class="sd">        create dictionaries in which to store all of the data collected for each star, and for each </span>
+<span class="sd">        aperture radius. Allocate the memory for these arrays wherever possible. Parse the init.par </span>
+<span class="sd">        file to grab the paths and initial parameters for the run.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parseInit</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">flatPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;flatPath&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rawRegionsList</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;regPaths&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ingress</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;ingress&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">egress</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;egress&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;apertureRadius&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trackingZoom</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;trackingZoom&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ccdGain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;ccdGain&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trackPlots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;trackPlots&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">photPlots</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;photPlots&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smoothConst</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span> <span class="p">[</span><span class="s">&quot;smoothConst&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">darksPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;darksPath&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;imagesPaths&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeKeyword</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="s">&quot;timeKeyword&quot;</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeKeyword</span> <span class="o">==</span> <span class="s">&#39;JD&#39;</span><span class="p">:</span> 
+            <span class="bp">self</span><span class="o">.</span><span class="n">convertToJD</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">timeKeyword</span> <span class="o">==</span> <span class="s">&#39;DATE-OBS&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">convertToJD</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">ut2jdSplitAtT</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="s">&#39;real_prefix&#39;</span><span class="p">):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">,</span> <span class="s">&#39;Must have at least two data images&#39;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flatPath</span> <span class="o">!=</span> <span class="s">&#39;&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">masterFlat</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flatPath</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">masterFlatPath</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">flatPath</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">sys</span><span class="p">,</span> <span class="s">&#39;real_prefix&#39;</span><span class="p">):</span>
+                <span class="k">print</span> <span class="s">&#39;Using an isotropic (&quot;placebo&quot;) master-flat (array of ones)&#39;</span>
+                <span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">pyfits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">masterFlat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">regionsFileList</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">regionsFITSrefsList</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parseRawRegionsList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rawRegionsList</span><span class="p">)</span>
+        <span class="n">init_x_list</span><span class="p">,</span><span class="n">init_y_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parseRegionsFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regionsFileList</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">zeroArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span><span class="p">,</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span> <span class="o">=</span> <span class="s">&#39;000&#39;</span>
+
+        <span class="n">Nradii</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">init_x_list</span><span class="p">)):</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;x-pos&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">zeroArray</span><span class="p">),</span> <span class="s">&#39;y-pos&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">zeroArray</span><span class="p">),</span>\
+                <span class="s">&#39;rawFlux&#39;</span><span class="p">:[</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">zeroArray</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Nradii</span><span class="p">)],</span> <span class="s">&#39;rawError&#39;</span><span class="p">:[</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">zeroArray</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Nradii</span><span class="p">)],</span><span class="s">&#39;flag&#39;</span><span class="p">:</span><span class="bp">False</span><span class="p">,</span>\
+                <span class="s">&#39;scaledFlux&#39;</span><span class="p">:[</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">zeroArray</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Nradii</span><span class="p">)],</span> <span class="s">&#39;scaledError&#39;</span><span class="p">:[</span><span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">zeroArray</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Nradii</span><span class="p">)],</span> <span class="s">&#39;chisq&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)][</span><span class="s">&#39;x-pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_x_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">)][</span><span class="s">&#39;y-pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">init_y_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>   
+<div class="viewcode-block" id="dataBank.getDict"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getDict">[docs]</a>    <span class="k">def</span> <span class="nf">getDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return dictionary of all star data called ``allStarsDict`.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span>
+    </div>
+<div class="viewcode-block" id="dataBank.centroidInitialGuess"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.centroidInitialGuess">[docs]</a>    <span class="k">def</span> <span class="nf">centroidInitialGuess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">expNumber</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Gets called for each exposure. If called on the first exposure, it will return</span>
+<span class="sd">        the intial centroid guesses input by the DS9 regions file. If any other image</span>
+<span class="sd">        and only one regions file has been submitted, it will return the previous centroid</span>
+<span class="sd">        as the initial guess for subsequent exposures. If multiple regions files have been</span>
+<span class="sd">        submitted, it will return the initial guesses in those regions files when the image path</span>
+<span class="sd">        with index ``expNumber`` is equivalent to the path stored for that regions file&#39;s </span>
+<span class="sd">        &quot;Reference FITS image&quot;.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expNumber : int</span>
+<span class="sd">            The index of the exposure currently being analyzed. The image gets called</span>
+<span class="sd">            by its index from the list of image paths returned by getPaths().</span>
+<span class="sd">        star : str</span>
+<span class="sd">            The key from ``allStarsDict`` that corresponds to the star for which you&#39;d</span>
+<span class="sd">            like a centroid initial guess.</span>
+<span class="sd">    </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        est_x : float</span>
+<span class="sd">            Estimated centroid position of the star ``star`` along the *x*-axis of pixels for</span>
+<span class="sd">            exposure index ``expNumber``</span>
+<span class="sd">        </span>
+<span class="sd">        est_y : float</span>
+<span class="sd">            Estimated centroid position of the star ``star`` along the *y*-axis of pixels for</span>
+<span class="sd">            exposure index ``expNumber``</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="n">expNumber</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">est_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;x-pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c">## Use DS9 regions file&#39;s estimate for the </span>
+            <span class="n">est_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;y-pos&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c">##    stellar centroid for the first exposure</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span><span class="p">[</span><span class="n">expNumber</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">regionsFITSrefsList</span><span class="p">:</span>
+            <span class="n">refIndex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">regionsFITSrefsList</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span><span class="p">[</span><span class="n">expNumber</span><span class="p">])</span>
+            <span class="n">init_x_list</span><span class="p">,</span> <span class="n">init_y_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parseRegionsFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regionsFileList</span><span class="p">[</span><span class="n">refIndex</span><span class="p">])</span>
+            <span class="n">est_x</span> <span class="o">=</span> <span class="n">init_x_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">star</span><span class="p">)]</span>
+            <span class="n">est_y</span> <span class="o">=</span> <span class="n">init_y_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">star</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="n">est_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;x-pos&#39;</span><span class="p">][</span><span class="n">expNumber</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>    <span class="c">## All other exposures use the</span>
+            <span class="n">est_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;y-pos&#39;</span><span class="p">][</span><span class="n">expNumber</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>    <span class="c">##    previous exposure centroid as estimate</span>
+        <span class="k">return</span> <span class="n">est_x</span><span class="p">,</span> <span class="n">est_y</span>
+    </div>
+<div class="viewcode-block" id="dataBank.storeCentroid"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.storeCentroid">[docs]</a>    <span class="k">def</span> <span class="nf">storeCentroid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">exposureNumber</span><span class="p">,</span><span class="n">xCentroid</span><span class="p">,</span><span class="n">yCentroid</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Store the centroid data collected by `trackSmooth`</span>
+<span class="sd">        </span>
+<span class="sd">		Parameters</span>
+<span class="sd">		----------</span>
+<span class="sd">		star : string</span>
+<span class="sd">			Key for the star for which the centroid has been measured</span>
+
+<span class="sd">		exposureNumber : int</span>
+<span class="sd">			Index of exposure being considered</span>
+
+<span class="sd">		xCentroid : float</span>
+<span class="sd">			*x*-centroid of the star</span>
+
+<span class="sd">		yCentroid : float</span>
+<span class="sd">			*y*-centroid of the star</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;x-pos&#39;</span><span class="p">][</span><span class="n">exposureNumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">xCentroid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;y-pos&#39;</span><span class="p">][</span><span class="n">exposureNumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">yCentroid</span>   
+    </div>
+<div class="viewcode-block" id="dataBank.storeFlux"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.storeFlux">[docs]</a>    <span class="k">def</span> <span class="nf">storeFlux</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">exposureNumber</span><span class="p">,</span><span class="n">rawFlux</span><span class="p">,</span><span class="n">rawError</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">		Store the flux and error data collected by `phot`</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        star : string</span>
+<span class="sd">            Key for the star from the ``allStarsDict`` dictionary</span>
+<span class="sd">        </span>
+<span class="sd">        exposureNumber : int</span>
+<span class="sd">            Index of exposure being considered</span>
+<span class="sd">        </span>
+<span class="sd">        rawFlux : float</span>
+<span class="sd">            flux measured, to be stored</span>
+<span class="sd">        </span>
+<span class="sd">        rawError : float</span>
+<span class="sd">            flux uncertainty measured, to be stored</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">][</span><span class="n">exposureNumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">rawFlux</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">][</span><span class="n">exposureNumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">rawError</span></div>
+<div class="viewcode-block" id="dataBank.storeFluxes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.storeFluxes">[docs]</a>    <span class="k">def</span> <span class="nf">storeFluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">exposureNumber</span><span class="p">,</span><span class="n">rawFluxes</span><span class="p">,</span><span class="n">rawErrors</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Store the flux and error data collected by oscaar.phot()</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        star : str</span>
+<span class="sd">            Key for the star from the `allStarsDict` dictionary</span>
+<span class="sd">        </span>
+<span class="sd">        exposureNumber : int</span>
+<span class="sd">            Index of exposure being considered</span>
+<span class="sd">        </span>
+<span class="sd">        rawFluxes : list of floats</span>
+<span class="sd">            flux measured, to be stored</span>
+<span class="sd">        </span>
+<span class="sd">        rawErrors : list of floats</span>
+<span class="sd">            photon noise measured, to be stored</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">apertureRadiusIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">][</span><span class="n">exposureNumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">rawFluxes</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">][</span><span class="n">exposureNumber</span><span class="p">]</span> <span class="o">=</span> <span class="n">rawErrors</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getPaths"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getPaths">[docs]</a>    <span class="k">def</span> <span class="nf">getPaths</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the paths to the raw images to be used&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">imagesPaths</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getFluxes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getFluxes">[docs]</a>    <span class="k">def</span> <span class="nf">getFluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Return list of fluxes for the star with key ``star``</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        star : str</span>
+<span class="sd">            Key for the star from the ``allStarsDict`` dictionary</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">		-------</span>
+<span class="sd">        fluxes : list</span>
+<span class="sd">            List of fluxes for each aperture radius</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">]</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getErrors"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getErrors">[docs]</a>    <span class="k">def</span> <span class="nf">getErrors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the errors for one star, where the star parameter is the key for the</span>
+<span class="sd">            star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">]</span>
+    </div>
+<div class="viewcode-block" id="dataBank.storeTime"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.storeTime">[docs]</a>    <span class="k">def</span> <span class="nf">storeTime</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">expNumber</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Store the time in JD from the FITS header.</span>
+<span class="sd">        Parameters</span>
+<span class="sd">		----------</span>
+<span class="sd">		exposureNumber : string</span>
+<span class="sd">			Index of exposure being considered</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="c">#try:</span>
+        <span class="n">timeStamp</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">getheader</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getPaths</span><span class="p">()[</span><span class="n">expNumber</span><span class="p">])[</span><span class="bp">self</span><span class="o">.</span><span class="n">timeKeyword</span><span class="p">]</span>
+        <span class="c">#except KeyError: </span>
+        <span class="c">#    print &#39;Input Error: The Exposure Time Keyword indicated in observatory.par is not a valid key: &#39;,self.timeKeyword</span>
+        <span class="c">#finally: </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">expNumber</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convertToJD</span><span class="p">(</span><span class="n">timeStamp</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getTimes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getTimes">[docs]</a>    <span class="k">def</span> <span class="nf">getTimes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return all times collected with dataBank.storeTime()&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getFlag"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getFlag">[docs]</a>    <span class="k">def</span> <span class="nf">getFlag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the flag for the star with key `star` &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;flag&#39;</span><span class="p">]</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getAllFlags"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getAllFlags">[docs]</a>    <span class="k">def</span> <span class="nf">getAllFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return flags for all stars&#39;&#39;&#39;</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="n">flags</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;flag&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">flags</span>
+        <span class="k">return</span> <span class="n">flags</span>
+    </div>
+<div class="viewcode-block" id="dataBank.setFlag"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.setFlag">[docs]</a>    <span class="k">def</span> <span class="nf">setFlag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">setting</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Set flag for star with key &lt;star&gt; to &lt;setting&gt; where </span>
+<span class="sd">            setting is a Boolean&#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;flag&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">setting</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getKeys"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getKeys">[docs]</a>    <span class="k">def</span> <span class="nf">getKeys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the keys for all of the stars&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span>
+    </div>
+<div class="viewcode-block" id="dataBank.scaleFluxes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.scaleFluxes">[docs]</a>    <span class="k">def</span> <span class="nf">scaleFluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        When all fluxes have been collected, run this to re-scale the fluxes of each</span>
+<span class="sd">        comparison star to the flux of the target star. Do the same transformation on the errors.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">star</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">],</span> <span class="n">m</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">regressionScale</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="n">star</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getTimes</span><span class="p">(),</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">,</span><span class="n">returncoeffs</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                <span class="k">print</span> <span class="n">m</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">getErrors</span><span class="p">(</span><span class="n">star</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">star</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">:</span>    <span class="c">## (Keep the target star the same)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">]</span>
+
+    </div>
+<div class="viewcode-block" id="dataBank.getFluxes_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getFluxes_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the fluxes for one star, where the star parameter is the key for the</span>
+<span class="sd">            star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getErrors_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getErrors_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">getErrors_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the errors for one star, where the star parameter is the key for the</span>
+<span class="sd">            star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="dataBank.scaleFluxes_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.scaleFluxes_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">scaleFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            When all fluxes have been collected, run this to re-scale the fluxes of each</span>
+<span class="sd">            comparison star to the flux of the target star. Do the same transformation on the errors.</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">apertureRadiusIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)):</span>    
+                <span class="k">if</span> <span class="n">star</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">],</span> <span class="n">m</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">regressionScale</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getTimes</span><span class="p">(),</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">,</span><span class="n">returncoeffs</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+                    <span class="c">#print m</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">m</span><span class="p">)</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">getErrors_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">star</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">:</span>    <span class="c">## (Keep the target star the same)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+    
+    </div>
+<div class="viewcode-block" id="dataBank.getScaledFluxes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getScaledFluxes">[docs]</a>    <span class="k">def</span> <span class="nf">getScaledFluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the scaled fluxes for one star, where the star parameter is the </span>
+<span class="sd">            key for the star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">])</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getScaledErrors"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getScaledErrors">[docs]</a>    <span class="k">def</span> <span class="nf">getScaledErrors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the scaled fluxes for one star, where the star parameter is the </span>
+<span class="sd">            key for the star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="dataBank.getScaledFluxes_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getScaledFluxes_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">getScaledFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the scaled fluxes for star and one aperture, where the star parameter is the </span>
+<span class="sd">            key for the star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">])</span>
+    </div>
+<div class="viewcode-block" id="dataBank.getScaledErrors_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getScaledErrors_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">getScaledErrors_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Return the scaled errors for star and one aperture, where the star parameter is the </span>
+<span class="sd">            key for the star of interest.&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">])</span>
+    </div>
+<div class="viewcode-block" id="dataBank.calcChiSq"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.calcChiSq">[docs]</a>    <span class="k">def</span> <span class="nf">calcChiSq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the :math:`$\chi^2$` for the fluxes of each comparison star and the fluxes of the target star. This</span>
+<span class="sd">        metric can be used to suggest which comparison stars have similar overall trends to the target star. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">chiSquared</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="n">star</span><span class="p">))</span>
+        <span class="n">chisq</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="n">chisq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meanChisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdChisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="dataBank.calcChiSq_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.calcChiSq_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">calcChiSq_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the :math:`$\chi^2$` for the fluxes of each comparison star and the fluxes of the target star. This</span>
+<span class="sd">        metric can be used to suggest which comparison stars have similar overall trends to the target star. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">chiSquared</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">))</span>
+        <span class="n">chisq</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="n">chisq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meanChisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stdChisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="dataBank.calcMeanComparison_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.calcMeanComparison_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">calcMeanComparison_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ccdGain</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Take the regression-weighted mean of some of the comparison stars</span>
+<span class="sd">        to produce one comparison star flux to compare to the target to</span>
+<span class="sd">        produce a light curve.</span>
+<span class="sd">        </span>
+<span class="sd">        The comparison stars used are those whose :math:`$\chi^2$`s calculated by</span>
+<span class="sd">        `calcChiSq()` are less than :math:`$2\sigma$` away from the other :math:`$\chi^2$`s.</span>
+<span class="sd">        This condition removes outlier comparison stars, which can be caused by intrinsic</span>
+<span class="sd">        variability, tracking inaccuracies, or other effects. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStars</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarErrors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">comparisonStarWeights</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">apertureRadiusIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)):</span>
+            <span class="c">## Check whether chi-squared has been calculated already. If not, compute it.</span>
+            <span class="n">chisq</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span> <span class="n">chisq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span>
+            <span class="n">chisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+            <span class="c">#if all(chisq == 0): self.calcChiSq_multirad(apertureRadiusIndex)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">chisq</span><span class="o">==</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span> <span class="bp">self</span><span class="o">.</span><span class="n">calcChiSq_multirad</span><span class="p">(</span><span class="n">apertureRadiusIndex</span><span class="p">)</span>
+            <span class="c">## Begin regression technique</span>
+            <span class="n">numCompStars</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="n">targetFullLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">))</span>    
+            <span class="k">print</span> <span class="s">&quot;Aperture rad:&quot;</span><span class="p">,</span> <span class="n">apertureRadiusIndex</span>
+            <span class="k">print</span> <span class="s">&quot;Target raw flux:&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span>
+            <span class="k">print</span> <span class="s">&quot;Target scaled flux:&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">outOfTransit</span><span class="p">()]</span>
+            <span class="n">compStars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">targetFullLength</span><span class="p">,</span><span class="n">numCompStars</span><span class="p">])</span>
+            <span class="n">compStarsOOT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">),</span><span class="n">numCompStars</span><span class="p">])</span>
+            <span class="n">compErrors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">compStars</span><span class="p">)</span>
+            <span class="n">columnCounter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">acceptedCompStarKeys</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">compStarKeys</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">star</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span> <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meanChisq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">stdChisq</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">compStars</span><span class="p">[:,</span><span class="n">columnCounter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                    <span class="n">compStarsOOT</span><span class="p">[:,</span><span class="n">columnCounter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">outOfTransit</span><span class="p">()]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                    <span class="n">compErrors</span><span class="p">[:,</span><span class="n">columnCounter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getScaledErrors_multirad</span><span class="p">(</span><span class="n">star</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                    <span class="n">compStarKeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">star</span><span class="p">))</span>
+                    <span class="n">columnCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">star</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span> <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meanChisq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">stdChisq</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="s">&#39;Star &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">star</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; excluded from regression&#39;</span>
+                    <span class="n">compStarKeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">star</span><span class="p">))</span>
+                    <span class="n">columnCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">initP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">numCompStars</span><span class="p">])</span><span class="o">+</span> <span class="mf">1.</span><span class="o">/</span><span class="n">numCompStars</span>
+            <span class="k">def</span> <span class="nf">errfunc</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">target</span><span class="p">):</span> 
+                <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span> <span class="o">&gt;=</span><span class="mf">0.0</span><span class="p">):</span> <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">compStarsOOT</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="n">target</span> <span class="c">## Find only positive coefficients</span>
+            <span class="c">#return np.dot(p,compStarsOOT.T) - target</span>
+            
+            <span class="n">bestFitP</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">leastsq</span><span class="p">(</span><span class="n">errfunc</span><span class="p">,</span><span class="n">initP</span><span class="p">[:],</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span><span class="n">maxfev</span><span class="o">=</span><span class="mi">10000000</span><span class="p">,</span><span class="n">epsfcn</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">print</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">Best fit regression coefficients:&#39;</span><span class="p">,</span><span class="n">bestFitP</span>
+            <span class="k">print</span> <span class="s">&#39;Default weight:&#39;</span><span class="p">,</span><span class="mf">1.</span><span class="o">/</span><span class="n">numCompStars</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">comparisonStarWeights_i</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">compStarKeys</span><span class="p">,</span><span class="n">bestFitP</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bestFitP</span><span class="p">,</span><span class="n">compStars</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarError</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bestFitP</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">compErrors</span><span class="o">.</span><span class="n">T</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStar</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarErrors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarError</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">comparisonStarWeights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">comparisonStarWeights_i</span><span class="p">)</span>      
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarErrors</span>
+   </div>
+<div class="viewcode-block" id="dataBank.getAllChiSq"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getAllChiSq">[docs]</a>    <span class="k">def</span> <span class="nf">getAllChiSq</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return :math:`$\chi^2$`s for all stars</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">chisq</span>
+    </div>
+<div class="viewcode-block" id="dataBank.outOfTransit"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.outOfTransit">[docs]</a>    <span class="k">def</span> <span class="nf">outOfTransit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Boolean array where `True` are the times in `getTimes()` that are</span>
+<span class="sd">        before ingress or after egress.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            List of bools</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getTimes</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getTimes</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">)</span>
+    </div>
+<div class="viewcode-block" id="dataBank.calcMeanComparison"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.calcMeanComparison">[docs]</a>    <span class="k">def</span> <span class="nf">calcMeanComparison</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ccdGain</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Take the regression-weighted mean of some of the comparison stars</span>
+<span class="sd">        to produce one comparison star flux to compare to the target to</span>
+<span class="sd">        produce a light curve.</span>
+<span class="sd">        </span>
+<span class="sd">        The comparison stars used are those whose chi-squareds calculated by</span>
+<span class="sd">        self.calcChiSq() are less than 2*sigma away from the other chi-squareds.</span>
+<span class="sd">        This condition removes outliers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c">## Check whether chi-squared has been calculated already. If not, compute it.</span>
+        <span class="n">chisq</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span> <span class="n">chisq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span>
+        <span class="n">chisq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chisq</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">chisq</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">calcChiSq</span><span class="p">()</span>
+        
+        <span class="c">## Begin regression technique</span>
+        <span class="n">numCompStars</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">targetFullLength</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">))</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">outOfTransit</span><span class="p">()]</span>
+        <span class="n">compStars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">targetFullLength</span><span class="p">,</span><span class="n">numCompStars</span><span class="p">])</span>
+        <span class="n">compStarsOOT</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">target</span><span class="p">),</span><span class="n">numCompStars</span><span class="p">])</span>
+        <span class="n">compErrors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">compStars</span><span class="p">)</span>
+        <span class="n">columnCounter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">compStarKeys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">star</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span> <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meanChisq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">stdChisq</span><span class="p">):</span>
+                <span class="n">compStars</span><span class="p">[:,</span><span class="n">columnCounter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes</span><span class="p">(</span><span class="n">star</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">compStarsOOT</span><span class="p">[:,</span><span class="n">columnCounter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getScaledFluxes</span><span class="p">(</span><span class="n">star</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">outOfTransit</span><span class="p">()]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">compErrors</span><span class="p">[:,</span><span class="n">columnCounter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getScaledErrors</span><span class="p">(</span><span class="n">star</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="n">compStarKeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">star</span><span class="p">))</span>
+                <span class="n">columnCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">star</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span> <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">meanChisq</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;chisq&#39;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">stdChisq</span><span class="p">):</span>
+                <span class="k">print</span> <span class="s">&#39;Star &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">star</span><span class="p">)</span><span class="o">+</span><span class="s">&#39; excluded from regression&#39;</span>
+                <span class="n">compStarKeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">star</span><span class="p">))</span>
+                <span class="n">columnCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">initP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">numCompStars</span><span class="p">])</span><span class="o">+</span> <span class="mf">1.</span><span class="o">/</span><span class="n">numCompStars</span>
+        <span class="k">def</span> <span class="nf">errfunc</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">target</span><span class="p">):</span> 
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span> <span class="o">&gt;=</span><span class="mf">0.0</span><span class="p">):</span> <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="n">compStarsOOT</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="n">target</span> <span class="c">## Find only positive coefficients</span>
+        <span class="c">#return np.dot(p,compStarsOOT.T) - target</span>
+        
+        <span class="n">bestFitP</span> <span class="o">=</span> <span class="n">optimize</span><span class="o">.</span><span class="n">leastsq</span><span class="p">(</span><span class="n">errfunc</span><span class="p">,</span><span class="n">initP</span><span class="p">[:],</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span><span class="n">maxfev</span><span class="o">=</span><span class="mi">10000000</span><span class="p">,</span><span class="n">epsfcn</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">print</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">Best fit regression coefficients:&#39;</span><span class="p">,</span><span class="n">bestFitP</span>
+        <span class="k">print</span> <span class="s">&#39;Default weight:&#39;</span><span class="p">,</span><span class="mf">1.</span><span class="o">/</span><span class="n">numCompStars</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">comparisonStarWeights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">compStarKeys</span><span class="p">,</span><span class="n">bestFitP</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStar</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bestFitP</span><span class="p">,</span><span class="n">compStars</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarError</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">bestFitP</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">compErrors</span><span class="o">.</span><span class="n">T</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStar</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarError</span>  
+
+</div>
+<div class="viewcode-block" id="dataBank.computeLightCurve"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.computeLightCurve">[docs]</a>    <span class="k">def</span> <span class="nf">computeLightCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">meanComparisonStar</span><span class="p">,</span><span class="n">meanComparisonStarError</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Divide the target star flux by the mean comparison star to yield a light curve,</span>
+<span class="sd">        save the light curve into the dataBank object.</span>
+<span class="sd">        </span>
+<span class="sd">        INPUTS: meanComparisonStar - The fluxes of the (one) mean comparison star</span>
+<span class="sd">        </span>
+<span class="sd">        RETURNS: self.lightCurve - The target star divided by the mean comparison </span>
+<span class="sd">        star, i.e., the light curve.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lightCurve</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">)</span><span class="o">/</span><span class="n">meanComparisonStar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lightCurveError</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurve</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getErrors</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">meanComparisonStarError</span><span class="o">/</span><span class="n">meanComparisonStar</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lightCurve</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lightCurveError</span>
+    </div>
+<div class="viewcode-block" id="dataBank.computeLightCurve_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.computeLightCurve_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">computeLightCurve_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">meanComparisonStars</span><span class="p">,</span><span class="n">meanComparisonStarErrors</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Divide the target star flux by the mean comparison star to yield a light curve,</span>
+<span class="sd">        save the light curve into the `dataBank` object.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        meanComparisonStar : list</span>
+<span class="sd">            The fluxes of the (one) mean comparison star</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        self.lightCurves: </span>
+<span class="sd">            The fluxes of the target star divided by the fluxes of the mean comparison </span>
+<span class="sd">            star, i.e., the light curve</span>
+<span class="sd">            </span>
+<span class="sd">        self.lightCurveErrors:</span>
+<span class="sd">            The propagated errors on each relative flux in `self.lightCurves`</span>
+<span class="sd">            </span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lightCurveErrors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">apertureRadiusIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)):</span>
+            <span class="n">lightCurve</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span><span class="o">/</span><span class="n">meanComparisonStars</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lightCurve</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lightCurveErrors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">lightCurve</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getErrors_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">)</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">getFluxes_multirad</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">targetKey</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">))</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span>\
+                                         <span class="p">(</span><span class="n">meanComparisonStarErrors</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]</span><span class="o">/</span><span class="n">meanComparisonStars</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="p">)))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">lightCurveErrors</span>
+</div>
+<div class="viewcode-block" id="dataBank.getPhotonNoise"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.getPhotonNoise">[docs]</a>    <span class="k">def</span> <span class="nf">getPhotonNoise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Calculate photon noise using the lightCurve and the meanComparisonStar</span>
+<span class="sd">        </span>
+<span class="sd">        RETURNS: self.photonNoise - The estimated photon noise limit</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">photonNoise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lightCurve</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">meanComparisonStarError</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">photonNoise</span>
+    </div>
+<div class="viewcode-block" id="dataBank.parseInit"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.parseInit">[docs]</a>    <span class="k">def</span> <span class="nf">parseInit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses `init.par`, a plain text file that contains all of the running parameters</span>
+<span class="sd">        that control the `differentialPhotometry.py` script. `init.par` is written by </span>
+<span class="sd">        the OSCAAR GUI or can be edited directly by the user. </span>
+<span class="sd">        &quot;&quot;&quot;</span>       
+        <span class="n">init</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">oscaar</span><span class="o">.</span><span class="n">__file__</span><span class="p">)),</span><span class="s">&#39;init.par&#39;</span><span class="p">),</span> <span class="s">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">init</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">inline</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;:&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">inline</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">inline</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="nb">list</span> <span class="o">=</span> <span class="p">[(</span><span class="s">&quot;Path to Master-Flat Frame&quot;</span><span class="p">,</span> <span class="s">&quot;flatPath&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;Path to Regions File&quot;</span><span class="p">,</span> <span class="s">&quot;regPaths&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;Ingress&quot;</span><span class="p">,</span> <span class="s">&quot;ingress&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Egress&quot;</span><span class="p">,</span> <span class="s">&quot;egress&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;Radius&quot;</span><span class="p">,</span> <span class="s">&quot;apertureRadius&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Tracking Zoom&quot;</span><span class="p">,</span> <span class="s">&quot;trackingZoom&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;CCD Gain&quot;</span><span class="p">,</span> <span class="s">&quot;ccdGain&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Plot Tracking&quot;</span><span class="p">,</span> <span class="s">&quot;trackPlots&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;Plot Photometry&quot;</span><span class="p">,</span> <span class="s">&quot;photPlots&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Smoothing Constant&quot;</span><span class="p">,</span> <span class="s">&quot;smoothConst&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;Output Path&quot;</span><span class="p">,</span><span class="s">&quot;outputPath&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Path to Dark Frames&quot;</span><span class="p">,</span> <span class="s">&quot;darksPath&quot;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s">&quot;Path to Data Images&quot;</span><span class="p">,</span> <span class="s">&quot;imagesPaths&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s">&quot;Exposure Time Keyword&quot;</span><span class="p">,</span> <span class="s">&quot;timeKeyword&quot;</span><span class="p">)]</span>
+                
+                <span class="k">for</span> <span class="n">string</span><span class="p">,</span><span class="n">save</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">string</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
+                        <span class="c">#if name == &quot;Smoothing Constant&quot; or name == &quot;Radius&quot; or name == &quot;Tracking Zoom&quot; or name == &quot;CCD Gain&quot;:</span>
+                        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Smoothing Constant&quot;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Tracking Zoom&quot;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;CCD Gain&quot;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Ingress&quot;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Egress&quot;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="n">oscaar</span><span class="o">.</span><span class="n">mathMethods</span><span class="o">.</span><span class="n">ut2jd</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Plot Photometry&quot;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Plot Tracking&quot;</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="s">&quot;on&quot;</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Path to Dark Frames&quot;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Path to Data Images&quot;</span><span class="p">:</span>
+                            <span class="n">value</span> <span class="o">=</span> <span class="n">inline</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">glob</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">tempArr</span> <span class="o">=</span> <span class="p">[]</span>
+                                <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">inline</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">):</span>
+                                    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">oscaarpathplus</span><span class="p">,</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+                                    <span class="n">tempArr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">tempArr</span><span class="p">)</span>
+                                
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Radius&quot;</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                                <span class="c">## If multiple aperture radii are requested by dictating the range, enumerate the range:</span>
+                                <span class="n">apertureRadiusMin</span><span class="p">,</span> <span class="n">apertureRadiusMax</span><span class="p">,</span> <span class="n">apertureRadiusStep</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span><span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">))</span>
+                                
+                                <span class="k">if</span> <span class="p">(</span><span class="n">apertureRadiusMax</span><span class="o">-</span><span class="n">apertureRadiusMin</span><span class="p">)</span> <span class="o">%</span> <span class="n">apertureRadiusStep</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                                    <span class="n">apertureRadii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">apertureRadiusMin</span><span class="p">,</span> <span class="n">apertureRadiusMax</span><span class="o">+</span><span class="n">apertureRadiusStep</span><span class="p">,</span> <span class="n">apertureRadiusStep</span><span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span> 
+                                    <span class="n">apertureRadii</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">apertureRadiusMin</span><span class="p">,</span> <span class="n">apertureRadiusMax</span><span class="p">,</span> <span class="n">apertureRadiusStep</span><span class="p">)</span>
+
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="n">apertureRadii</span>
+                            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="c">## If only one aperture radius is requested, make a list with only that one element</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)]</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)]</span>                                    
+
+                        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Output Path&quot;</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">outputPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">oscaarpathplus</span><span class="p">,</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">dict</span><span class="p">[</span><span class="n">save</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+</div>
+<div class="viewcode-block" id="dataBank.parseRegionsFile"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.parseRegionsFile">[docs]</a>    <span class="k">def</span> <span class="nf">parseRegionsFile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">regPath</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses the regions files (.REG) created by DS9. These files are written in plain text, where</span>
+<span class="sd">        each circuluar region&#39;s centroid and radius are logged in the form &quot;circle(`x-centroid`,`y-centroid`,`radius`)&quot;. </span>
+<span class="sd">        This method uses regular expressions to parse out the centroids.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        regPath : string</span>
+<span class="sd">            Path to the regions file to read</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        init_x_list : list</span>
+<span class="sd">            Initial estimates for the x-centroids</span>
+<span class="sd">        </span>
+<span class="sd">        init_y_list : list</span>
+<span class="sd">            Initial estimates for the y-centroids</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">regionsData</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">regPath</span><span class="p">,</span><span class="s">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="n">init_x_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">init_y_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">regionsData</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">regionsData</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;circle&#39;</span><span class="p">:</span>
+                <span class="n">y</span><span class="p">,</span><span class="n">x</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;\,&quot;</span><span class="p">,</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;\(&quot;</span><span class="p">,</span><span class="n">regionsData</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="mi">1</span><span class="p">])[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">init_y_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+                <span class="n">init_x_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">init_x_list</span><span class="p">,</span><span class="n">init_y_list</span>
+</div>
+<div class="viewcode-block" id="dataBank.parseRawRegionsList"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.parseRawRegionsList">[docs]</a>    <span class="k">def</span> <span class="nf">parseRawRegionsList</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">rawRegionsList</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Split up the `rawRegionsList`, which should be in the format: </span>
+<span class="sd">    </span>
+<span class="sd">        &lt;first regions file&gt;,&lt;reference FITS file for the first regs file&gt;;&lt;second&gt; regions file&gt;,</span>
+<span class="sd">        &lt;reference FITS file for the first regs file&gt;;....</span>
+
+<span class="sd">        into a list of regions files and a list of FITS reference files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">regionsFiles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">refFITSFiles</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="n">rawRegionsList</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;;&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pair</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">))</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">regionsFile</span><span class="p">,</span> <span class="n">refFITSFile</span> <span class="o">=</span> <span class="n">pair</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">regionsFiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">regionsFile</span><span class="p">)</span>
+                <span class="n">refFITSFiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">refFITSFile</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">regionsFiles</span><span class="p">,</span> <span class="n">refFITSFiles</span>
+        
+    </div>
+<div class="viewcode-block" id="dataBank.plot"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Produce a plot of the light curve, show it. Over-plot 10-point median binning</span>
+<span class="sd">        of the light curve.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pointsPerBin : int, optional (default=10)</span>
+<span class="sd">            Integer number of points to accumulate per bin.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getTimes</span><span class="p">()</span>
+        <span class="n">meanComparisonStar</span><span class="p">,</span> <span class="n">meanComparisonStarError</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calcMeanComparison</span><span class="p">(</span><span class="n">ccdGain</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ccdGain</span><span class="p">)</span>
+        <span class="n">lightCurve</span><span class="p">,</span> <span class="n">lightCurveErr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">computeLightCurve</span><span class="p">(</span><span class="n">meanComparisonStar</span><span class="p">,</span> <span class="n">meanComparisonStarError</span><span class="p">)</span>
+        <span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">binnedStd</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">medianBin</span><span class="p">(</span><span class="n">times</span><span class="p">,</span><span class="n">lightCurve</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="p">)</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;Function to give data value on mouse over plot.&#39;&#39;&#39;</span>
+            <span class="k">return</span> <span class="s">&#39;JD=</span><span class="si">%1.5f</span><span class="s">, Flux=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+        <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">times</span><span class="p">,</span><span class="n">lightCurve</span><span class="p">,</span><span class="n">yerr</span><span class="o">=</span><span class="n">lightCurveErr</span><span class="p">,</span><span class="n">fmt</span><span class="o">=</span><span class="s">&#39;k.&#39;</span><span class="p">,</span><span class="n">ecolor</span><span class="o">=</span><span class="s">&#39;gray&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">binnedStd</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s">&#39;rs-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Light Curve&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Time (JD)&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Relative Flux&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    </div>
+<div class="viewcode-block" id="dataBank.plotLightCurve"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plotLightCurve">[docs]</a>    <span class="k">def</span> <span class="nf">plotLightCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Produce a plot of the light curve, show it. Over-plot 10-point median binning</span>
+<span class="sd">        of the light curve.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pointsPerBin : int, optional (default=10)</span>
+<span class="sd">            Integer number of points to accumulate per bin.</span>
+<span class="sd">            </span>
+<span class="sd">        apertureRadiusIndex : int, optional (default=0)</span>
+<span class="sd">            Index of the aperture radius list corresponding to the aperture radius</span>
+<span class="sd">            from which to produce the plot. </span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">binnedStd</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">medianBin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">pointsPerBin</span><span class="p">)</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;Function to give data value on mouse over plot.&#39;&#39;&#39;</span>
+            <span class="k">return</span> <span class="s">&#39;JD=</span><span class="si">%1.5f</span><span class="s">, Flux=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+        <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">yerr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurveErrors</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">fmt</span><span class="o">=</span><span class="s">&#39;k.&#39;</span><span class="p">,</span><span class="n">ecolor</span><span class="o">=</span><span class="s">&#39;gray&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">binnedStd</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s">&#39;rs-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">((</span><span class="s">&#39;Light curve for aperture radius </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]))</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Time (JD)&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Relative Flux&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    </div>
+<div class="viewcode-block" id="dataBank.plotRawFluxes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plotRawFluxes">[docs]</a>    <span class="k">def</span> <span class="nf">plotRawFluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot all raw flux time series for a particular aperture radius, </span>
+<span class="sd">        for each comparison star. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pointsPerBin : int, optional (default=10)</span>
+<span class="sd">            Integer number of points to accumulate per bin.</span>
+<span class="sd">            </span>
+<span class="sd">        apertureRadiusIndex : int, optional (default=0)</span>
+<span class="sd">            Index of the aperture radius list corresponding to the aperture radius</span>
+<span class="sd">            from which to produce the plot. </span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ion</span><span class="p">()</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;Function to give data value on mouse over plot.&#39;&#39;&#39;</span>
+            <span class="k">return</span> <span class="s">&#39;JD=</span><span class="si">%1.5f</span><span class="s">, Flux=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">yerr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;rawError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">fmt</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+        
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">((</span><span class="s">&#39;Raw fluxes for aperture radius </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]))</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Time (JD)&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Counts&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    
+    </div>
+<div class="viewcode-block" id="dataBank.plotScaledFluxes"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plotScaledFluxes">[docs]</a>    <span class="k">def</span> <span class="nf">plotScaledFluxes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot all scaled flux time series for a particular aperture radius, </span>
+<span class="sd">        for each comparison star. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pointsPerBin : int, optional (default=10)</span>
+<span class="sd">            Integer number of points to accumulate per bin.</span>
+<span class="sd">            </span>
+<span class="sd">        apertureRadiusIndex : int, optional (default=0)</span>
+<span class="sd">            Index of the aperture radius list corresponding to the aperture radius</span>
+<span class="sd">            from which to produce the plot. </span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ion</span><span class="p">()</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;Function to give data value on mouse over plot.&#39;&#39;&#39;</span>
+            <span class="k">return</span> <span class="s">&#39;JD=</span><span class="si">%1.5f</span><span class="s">, Flux=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledFlux&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">yerr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;scaledError&#39;</span><span class="p">][</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">fmt</span><span class="o">=</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+        
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">((</span><span class="s">&#39;Scaled fluxes for aperture radius: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]))</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Time (JD)&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Counts&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="dataBank.plotCentroidsTrace"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plotCentroidsTrace">[docs]</a>    <span class="k">def</span> <span class="nf">plotCentroidsTrace</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot all centroid positions for a particular aperture radius, </span>
+<span class="sd">        for each comparison star. The plot will be in (`x`,`y`) coordinates</span>
+<span class="sd">        to visualize the physical image drift (this is not a plot as a function</span>
+<span class="sd">        of time).</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pointsPerBin : int, optional (default=10)</span>
+<span class="sd">            Integer number of points to accumulate per bin.</span>
+<span class="sd">            </span>
+<span class="sd">        apertureRadiusIndex : int, optional (default=0)</span>
+<span class="sd">            Index of the aperture radius list corresponding to the aperture radius</span>
+<span class="sd">            from which to produce the plot. </span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+            <span class="sd">&#39;&#39;&#39;Function to give data value on mouse over plot.&#39;&#39;&#39;</span>
+            <span class="k">return</span> <span class="s">&#39;JD=</span><span class="si">%1.5f</span><span class="s">, Flux=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+        <span class="k">for</span> <span class="n">star</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">:</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;y-pos&#39;</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">allStarsDict</span><span class="p">[</span><span class="n">star</span><span class="p">][</span><span class="s">&#39;x-pos&#39;</span><span class="p">])</span>
+        
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Tracing Stellar Centroids&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;X&#39;</span><span class="p">)</span>
+        <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Y&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+    </div>
+<div class="viewcode-block" id="dataBank.plotComparisonWeightings"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plotComparisonWeightings">[docs]</a>    <span class="k">def</span> <span class="nf">plotComparisonWeightings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">apertureRadiusIndex</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot histograms visualizing the relative weightings of the comparison</span>
+<span class="sd">        stars used to produce the &quot;mean comparison star&quot;, from which the </span>
+<span class="sd">        light curve is calculated. </span>
+<span class="sd">                </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        apertureRadiusIndex : int, optional (default=0)</span>
+<span class="sd">            Index of the aperture radius list corresponding to the aperture radius</span>
+<span class="sd">            from which to produce the plot. </span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ion</span><span class="p">()</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">comparisonStarWeights</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">width</span> <span class="o">=</span> <span class="mf">0.5</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">weights</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">indices</span><span class="o">+</span><span class="n">width</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s">&quot;Star &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">))])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Comparison Star&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Normalized Weighting&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Comparison Star Weights into the Composite Comparison Star for aperture radius </span><span class="si">%s</span><span class="s">&#39;</span> \
+                     <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">])</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="n">xmin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">xmax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">y</span><span class="o">=</span><span class="mf">1.0</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">bar</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span><span class="n">coefficients</span><span class="p">,</span><span class="n">width</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="dataBank.updateMCMC"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.updateMCMC">[docs]</a>    <span class="k">def</span> <span class="nf">updateMCMC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">bestp</span><span class="p">,</span><span class="n">allparams</span><span class="p">,</span><span class="n">acceptanceRate</span><span class="p">,</span><span class="n">dataBankPath</span><span class="p">,</span><span class="n">uncertainties</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assigns variables within the dataBank object for the results of an MCMC run. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bestp : list</span>
+<span class="sd">            Best-fit parameters from the MCMC run. The list elements correspond to [&lt;ratio of planetary radius</span>
+<span class="sd">            to stellar radius&gt;,&lt;ratio of semi-major axis to stellar radius&gt;,&lt;inclination&gt;,&lt;mid-transit time&gt;].</span>
+<span class="sd">            </span>
+<span class="sd">        allparams : 2D matrix</span>
+<span class="sd">            This matrix represents the many &quot;states&quot;, &quot;trails&quot; or &quot;links in the chain&quot; that are accepted and saved</span>
+<span class="sd">            throughout the Metropolis-Hastings process in the MCMC scripts. From allparams we can calculate the </span>
+<span class="sd">            uncertainties on each best-fit parameter.</span>
+<span class="sd">            </span>
+<span class="sd">        acceptanceRate : float</span>
+<span class="sd">            The final acceptance rate achieved by the chain; the ratio of the number of accepted states and the</span>
+<span class="sd">            number of states attempted</span>
+<span class="sd">            </span>
+<span class="sd">        dataBankPath : string</span>
+<span class="sd">            Path to the dataBank object pickle (aka &quot;OSCAAR pkl&quot;) to update</span>
+<span class="sd">        </span>
+<span class="sd">        uncertainties : list of lists</span>
+<span class="sd">            :math:`$\pm 1\sigma$` uncertainties on each of the best-fit parameters in `bestp`</span>
+<span class="sd">        </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MCMC_bestp</span> <span class="o">=</span> <span class="n">bestp</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MCMC_allparams</span> <span class="o">=</span> <span class="n">allparams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MCMC_acceptanceRate</span> <span class="o">=</span> <span class="n">acceptanceRate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataBankPath</span> <span class="o">=</span> <span class="n">dataBankPath</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MCMC_uncertainties</span> <span class="o">=</span> <span class="n">uncertainties</span>
+</div>
+<div class="viewcode-block" id="dataBank.uncertaintyString"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.uncertaintyString">[docs]</a>    <span class="k">def</span> <span class="nf">uncertaintyString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        savestring : string</span>
+<span class="sd">            A string formatted for human-readable results from the MCMC process, with </span>
+<span class="sd">            the best-fit parameters and the :math:`$\pm 1\sigma$` uncertainties</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">savestring</span> <span class="o">=</span> <span class="s">&#39;MCMC Best Fit Parameters And One-Sigma Uncertainties</span><span class="se">\n</span><span class="s">----------------------------------------------------</span><span class="se">\n\n</span><span class="s">&#39;</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;Rp/Rs&#39;</span><span class="p">,</span><span class="s">&#39;a/Rs&#39;</span><span class="p">,</span><span class="s">&#39;Inclination&#39;</span><span class="p">,</span><span class="s">&#39;Mid-transit time&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)):</span>
+            <span class="n">savestring</span> <span class="o">+=</span> <span class="s">&#39;</span><span class="si">%s</span><span class="s">:</span><span class="se">\t</span><span class="si">%s</span><span class="se">\t</span><span class="s"> +</span><span class="si">%s</span><span class="s"> / -</span><span class="si">%s</span><span class="s"> </span><span class="se">\n</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">labels</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">MCMC_bestp</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">MCMC_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">MCMC_uncertainties</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">savestring</span>
+</div>
+<div class="viewcode-block" id="dataBank.czechETDstring"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.czechETDstring">[docs]</a>    <span class="k">def</span> <span class="nf">czechETDstring</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">apertureRadiusIndex</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a string containing the tab delimited light curve data for submission </span>
+<span class="sd">        to the *Czech Astronomical Society&#39;s Exoplanet Transit Database*, for submission</span>
+<span class="sd">        here: http://var2.astro.cz/ETD/protocol.php</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        apertureRadiusIndex : int</span>
+<span class="sd">            Index of the aperture radius from which to use for the light curve fluxes</span>
+<span class="sd">            and errors. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">N_measurements</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">])</span>
+        <span class="n">outputString</span> <span class="o">=</span> <span class="s">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">N_measurements</span><span class="p">):</span>
+            <span class="n">outputString</span> <span class="o">+=</span> <span class="s">&#39;</span><span class="se">\t</span><span class="s">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,[</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">][</span><span class="n">i</span><span class="p">],</span>\
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">lightCurveErrors</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">][</span><span class="n">i</span><span class="p">]]))</span>
+            <span class="n">outputString</span> <span class="o">+=</span> <span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span>
+        <span class="k">return</span> <span class="n">outputString</span>
+        
+<span class="c">#     def plotMCMC(self):</span>
+<span class="c">#         bestp = self.MCMC_bestp</span>
+<span class="c">#         allparams = self.MCMC_allparams</span>
+<span class="c">#         x = self.times</span>
+<span class="c">#         y = self.lightCurve</span>
+<span class="c">#         sigma_y = self.lightCurveError</span>
+<span class="c">#     </span>
+<span class="c">#         ##############################</span>
+<span class="c">#         # Prepare figures</span>
+<span class="c">#         fig = plt.figure()</span>
+<span class="c">#         ax1 = fig.add_subplot(331)</span>
+<span class="c">#         ax2 = fig.add_subplot(332)</span>
+<span class="c">#         ax3 = fig.add_subplot(333)</span>
+<span class="c">#         ax4 = fig.add_subplot(334)</span>
+<span class="c">#         ax5 = fig.add_subplot(335)</span>
+<span class="c">#         ax6 = fig.add_subplot(336)</span>
+<span class="c">#         ax7 = fig.add_subplot(337)</span>
+<span class="c">#         ax8 = fig.add_subplot(338)</span>
+<span class="c">#         ax9 = fig.add_subplot(339)</span>
+<span class="c">#         yfit = occult4params(x,bestp)</span>
+<span class="c">#         ax1.errorbar(x,y,yerr=sigma_y,fmt=&#39;o-&#39;)</span>
+<span class="c">#         ax1.plot(x,yfit,&#39;r&#39;)</span>
+<span class="c">#         ax1.set_title(&quot;Fit with MCMC&quot;)</span>
+<span class="c"># </span>
+<span class="c">#         ##############################</span>
+<span class="c">#         # Plot traces and histograms of mcmc params</span>
+<span class="c">#         p = allparams[0,:]</span>
+<span class="c">#         ap = allparams[1,:]</span>
+<span class="c">#         i = allparams[2,:]</span>
+<span class="c">#         t0 = allparams[3,:]</span>
+<span class="c">#         abscissa = np.arange(len(allparams[0,:]))   ## Make x-axis for trace plots</span>
+<span class="c">#         burnFraction = 0.20     ## &quot;burn&quot; or ignore the first 20% of the chains</span>
+<span class="c"># </span>
+<span class="c">#         ax2.plot(abscissa,p,&#39;k.&#39;)</span>
+<span class="c">#         ax2.set_title(&#39;p trace&#39;)</span>
+<span class="c">#         ax2.axvline(ymin=0,ymax=1,x=burnFraction*len(abscissa),linestyle=&#39;:&#39;)</span>
+<span class="c"># </span>
+<span class="c">#         ax3.plot(abscissa,ap,&#39;k.&#39;)</span>
+<span class="c">#         ax3.set_title(&#39;ap trace&#39;)</span>
+<span class="c">#         ax3.axvline(ymin=0,ymax=1,x=burnFraction*len(abscissa),linestyle=&#39;:&#39;)</span>
+<span class="c"># </span>
+<span class="c">#         ax4.plot(abscissa,i,&#39;k.&#39;)</span>
+<span class="c">#         ax4.set_title(&#39;i trace&#39;)</span>
+<span class="c">#         ax4.axvline(ymin=0,ymax=1,x=burnFraction*len(abscissa),linestyle=&#39;:&#39;)</span>
+<span class="c"># </span>
+<span class="c">#         ax5.plot(abscissa,t0,&#39;k.&#39;)</span>
+<span class="c">#         ax5.set_title(&#39;t0 trace&#39;)</span>
+<span class="c">#         ax5.axvline(ymin=0,ymax=1,x=burnFraction*len(abscissa),linestyle=&#39;:&#39;)</span>
+<span class="c"># </span>
+<span class="c">#         def histplot(parameter,axis,title,bestFitParameter):</span>
+<span class="c">#             postburn = parameter[burnFraction*len(parameter):len(parameter)]    ## Burn beginning of chain</span>
+<span class="c">#             Nbins = 15              ## Plot histograms with 15 bins</span>
+<span class="c">#             n, bins, patches = axis.hist(postburn, Nbins, normed=0, facecolor=&#39;white&#39;)  ## Generate histogram</span>
+<span class="c">#             plus,minus = oscaar.fitting.get_uncertainties(postburn,bestFitParameter)   ## Calculate uncertainties on best fit parameter</span>
+<span class="c">#             axis.axvline(ymin=0,ymax=1,x=bestFitParameter+plus,ls=&#39;:&#39;,color=&#39;r&#39;)    ## Plot vertical lines representing uncertainties</span>
+<span class="c">#             axis.axvline(ymin=0,ymax=1,x=bestFitParameter-minus,ls=&#39;:&#39;,color=&#39;r&#39;)        </span>
+<span class="c">#             axis.set_title(title)</span>
+<span class="c">#         ## Plot the histograms</span>
+<span class="c">#         histplot(p,ax6,&#39;p&#39;,bestp[0])</span>
+<span class="c">#         histplot(ap,ax7,&#39;ap&#39;,bestp[1])</span>
+<span class="c">#         histplot(i,ax8,&#39;i&#39;,bestp[2])</span>
+<span class="c">#         histplot(t0,ax9,&#39;t0&#39;,bestp[3])</span>
+<span class="c"># </span>
+<span class="c">#         plt.savefig(&quot;mcmc_results.png&quot;,bbox_inches=&#39;tight&#39;)     ## Save plot</span>
+<span class="c">#         plt.show()</span>
+</div>
+<div class="viewcode-block" id="dataBank.plotLightCurve_multirad"><a class="viewcode-back" href="../../oscaar.html#oscaar.dataBank.dataBank.plotLightCurve_multirad">[docs]</a>    <span class="k">def</span> <span class="nf">plotLightCurve_multirad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">pointsPerBin</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">apertureRadiusIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">)):</span>
+            
+            <span class="n">meanTimeInt</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">times</span><span class="p">)))</span>
+            <span class="n">offsetTimes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">times</span> <span class="o">-</span> <span class="n">meanTimeInt</span>
+            <span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">binnedStd</span> <span class="o">=</span> <span class="n">mathMethods</span><span class="o">.</span><span class="n">medianBin</span><span class="p">(</span><span class="n">offsetTimes</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">pointsPerBin</span><span class="p">)</span>
+            <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">num</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span><span class="n">edgecolor</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">)</span>
+            <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;OSCAAR&#39;</span><span class="p">)</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">)</span>
+            <span class="k">def</span> <span class="nf">format_coord</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+                <span class="sd">&#39;&#39;&#39;Function to give data value on mouse over plot.&#39;&#39;&#39;</span>
+                <span class="k">return</span> <span class="s">&#39;JD=</span><span class="si">%1.5f</span><span class="s">, Flux=</span><span class="si">%1.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">meanTimeInt</span><span class="o">+</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">format_coord</span> <span class="o">=</span> <span class="n">format_coord</span> 
+            <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">offsetTimes</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurves</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">yerr</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lightCurveErrors</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">],</span><span class="n">fmt</span><span class="o">=</span><span class="s">&#39;k.&#39;</span><span class="p">,</span><span class="n">ecolor</span><span class="o">=</span><span class="s">&#39;gray&#39;</span><span class="p">)</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">binnedTime</span><span class="p">,</span> <span class="n">binnedFlux</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">binnedStd</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s">&#39;rs-&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ingress</span><span class="o">-</span><span class="n">meanTimeInt</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ymin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">ymax</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">egress</span><span class="o">-</span><span class="n">meanTimeInt</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s">&#39;:&#39;</span><span class="p">)</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="s">&#39;Light curve for aperture radius: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">apertureRadii</span><span class="p">[</span><span class="n">apertureRadiusIndex</span><span class="p">])</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">((</span><span class="s">&#39;Time - </span><span class="si">%i</span><span class="s"> (JD)&#39;</span> <span class="o">%</span> <span class="n">meanTimeInt</span><span class="p">))</span>
+            <span class="n">axis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Relative Flux&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ioff</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

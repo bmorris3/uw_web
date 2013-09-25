@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.systematics &mdash; OSCAAR 2.0beta documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '2.0beta',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 2.0beta documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.systematics</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pyfits</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+<div class="viewcode-block" id="meanDarkFrame"><a class="viewcode-back" href="../../oscaar.html#oscaar.systematics.meanDarkFrame">[docs]</a><span class="k">def</span> <span class="nf">meanDarkFrame</span><span class="p">(</span><span class="n">darksPath</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Returns the mean dark frame calculated from each dark frame in `darksPath`</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    darksPath : list of strings</span>
+<span class="sd">        Paths to the dark frames</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">        The mean of the dark frames in `darksPath`</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c">#darksPath = glob(darksPath)</span>
+    <span class="p">[</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">darksPath</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="c">## Create N-dimensional array for N dark frames, where the first </span>
+    <span class="c">##    two dimensions are the dimensions of the first image</span>
+    <span class="n">darks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">darksPath</span><span class="p">),</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">])</span>
+    <span class="c">## Return mean of all darks</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">darksPath</span><span class="p">)):</span>
+        <span class="n">darks</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:]</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">darksPath</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="standardFlatMaker"><a class="viewcode-back" href="../../oscaar.html#oscaar.systematics.standardFlatMaker">[docs]</a><span class="k">def</span> <span class="nf">standardFlatMaker</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">,</span><span class="n">flatDarkImagesPath</span><span class="p">,</span><span class="n">masterFlatSavePath</span><span class="p">,</span><span class="n">plots</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Make a master flat by taking a mean of a group of flat fields</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    flatImagesPath : string</span>
+<span class="sd">        Path to the flat field exposures</span>
+
+<span class="sd">    flatDarkImagesPath : string</span>
+<span class="sd">        Path to the flat field darks</span>
+<span class="sd">    </span>
+<span class="sd">    masterFlatSavePath : string</span>
+<span class="sd">        Where to save the master flat that is created</span>
+<span class="sd">    </span>
+<span class="sd">    plots : bool</span>
+<span class="sd">        Plot the master flat on completion when plots=True</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c">## Create zero array with the dimensions of the first image for the flat field</span>
+    <span class="p">[</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">flatSum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">])</span>
+
+    <span class="c">## Create N-dimensional array for N dark frames, where the first </span>
+    <span class="c">##    two dimensions are the dimensions of the first image</span>
+    <span class="n">darks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">flatDarkImagesPath</span><span class="p">),</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">])</span>
+
+    <span class="c">## Take mean of all darks</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">flatDarkImagesPath</span><span class="p">)):</span>
+        <span class="n">darks</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:]</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">flatDarkImagesPath</span><span class="p">[</span><span class="n">i</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+    <span class="n">dark</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c">## Sum up all flat fields, subtract mean dark frame from each flat</span>
+    <span class="k">for</span> <span class="n">flatImage</span> <span class="ow">in</span> <span class="n">flatImagesPath</span><span class="p">:</span>
+        <span class="n">flatSum</span> <span class="o">+=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">flatImage</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span> <span class="o">-</span> <span class="n">dark</span>
+    <span class="c">## Divide the summed flat fields by their mean to obtain a flat frame</span>
+    <span class="n">masterFlat</span> <span class="o">=</span> <span class="n">flatSum</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flatSum</span><span class="p">)</span>
+
+    <span class="n">masterFlat</span><span class="p">[</span><span class="n">masterFlat</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span> 	<span class="c">## If pixel is 0, make it just above zero</span>
+
+    <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+        <span class="c">## If plots == True, plot the resulting master flat</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">masterFlat</span><span class="p">,</span><span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;nearest&#39;</span><span class="p">)</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">set_cmap</span><span class="p">(</span><span class="s">&#39;gray&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Normalized Master Flat Field&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;oscaar2.0 - Master Flat&#39;</span><span class="p">)</span> 
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="c">## Write out a FITS file</span>
+    <span class="c">#np.save(masterFlatSavePath+&#39;.npy&#39;,masterFlat)</span>
+    <span class="k">if</span> <span class="n">masterFlatSavePath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.fits&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">masterFlatSavePath</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&#39;.fit&#39;</span><span class="p">):</span>
+        <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">masterFlatSavePath</span><span class="p">,</span><span class="n">masterFlat</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">masterFlatSavePath</span><span class="o">+</span><span class="s">&#39;.fits&#39;</span><span class="p">,</span><span class="n">masterFlat</span><span class="p">)</span>
+        </div>
+<div class="viewcode-block" id="twilightFlatMaker"><a class="viewcode-back" href="../../oscaar.html#oscaar.systematics.twilightFlatMaker">[docs]</a><span class="k">def</span> <span class="nf">twilightFlatMaker</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">,</span><span class="n">flatDarkImagesPath</span><span class="p">,</span><span class="n">masterFlatSavePath</span><span class="p">,</span><span class="n">plots</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Make a master flat using a series of images taken at twilight</span>
+<span class="sd">    by fitting the individual pixel intensities over time using least-squares</span>
+<span class="sd">    and use the intercept as the normalizing factor in the master flat.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">	---------- </span>
+<span class="sd">    flatImagesPath : string</span>
+<span class="sd">        Path to the flat field exposures</span>
+
+<span class="sd">    flatDarkImagesPath : string</span>
+<span class="sd">        Path to the flat field darks</span>
+<span class="sd">    </span>
+<span class="sd">    masterFlatSavePath : string</span>
+<span class="sd">        Where to save the master flat that is created</span>
+<span class="sd">    </span>
+<span class="sd">    plots : bool</span>
+<span class="sd">        Plot the master flat on completion when plots=True</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c">## Create zero array with the dimensions of the first image for the flat field</span>
+    <span class="p">[</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">pyfits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+    <span class="n">flatSum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dim1</span><span class="p">,</span> <span class="n">dim2</span><span class="p">])</span>
+
+    <span class="c">## Create N-dimensional array for N dark frames, where the first </span>
+    <span class="c">##    two dimensions are the dimensions of the first image</span>
+    <span class="n">darks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">flatDarkImagesPath</span><span class="p">),</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">])</span>
+
+    <span class="c">## Take mean of all darks</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">flatDarkImagesPath</span><span class="p">)):</span>
+        <span class="n">darks</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:]</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">flatDarkImagesPath</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="n">dark</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">darks</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c">## Create N-dimensional array for N flat frames, where the first </span>
+    <span class="c">##    two dimensions are the dimensions of the first image</span>
+    <span class="n">flats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">),</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">])</span>
+
+    <span class="c">## Assemble data cube of flats</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">)):</span>
+        <span class="n">flats</span><span class="p">[</span><span class="n">i</span><span class="p">,:,:]</span> <span class="o">=</span> <span class="n">pyfits</span><span class="o">.</span><span class="n">getdata</span><span class="p">(</span><span class="n">flatImagesPath</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">-</span> <span class="n">dark</span>
+
+    <span class="k">def</span> <span class="nf">linearFitIntercept</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Use least-squares to find the best-fit y-intercept &#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lstsq</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">([</span><span class="n">x</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span><span class="n">y</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="c">## Returns intercept</span>
+
+    <span class="n">flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dim1</span><span class="p">,</span><span class="n">dim2</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">dim1</span><span class="p">):</span>
+        <span class="k">print</span> <span class="s">&#39;Master flat computing step:&#39;</span><span class="p">,</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="s">&#39;of&#39;</span><span class="p">,</span><span class="n">dim1</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">dim2</span><span class="p">):</span>
+            <span class="n">flat</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">linearFitIntercept</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flats</span><span class="p">[:,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])),</span><span class="n">flats</span><span class="p">[:,</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="n">masterFlat</span> <span class="o">=</span> <span class="n">flat</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">plots</span><span class="p">:</span>
+        <span class="c">## If plots == True, plot the resulting master flat</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">masterFlat</span><span class="p">,</span><span class="n">interpolation</span><span class="o">=</span><span class="s">&#39;nearest&#39;</span><span class="p">)</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">set_cmap</span><span class="p">(</span><span class="s">&#39;gray&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Normalized Master Flat Field&#39;</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">set_window_title</span><span class="p">(</span><span class="s">&#39;oscaar2.0 - Master Flat&#39;</span><span class="p">)</span> 
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="c">## Write out both a Numpy pickle (.NPY) and a FITS file</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">masterFlatSavePath</span><span class="o">+</span><span class="s">&#39;.npy&#39;</span><span class="p">,</span><span class="n">masterFlat</span><span class="p">)</span>
+    <span class="n">pyfits</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">masterFlatSavePath</span><span class="o">+</span><span class="s">&#39;.fits&#39;</span><span class="p">,</span><span class="n">masterFlat</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../np-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 2.0beta documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Brett M. Morris and the OSCAAR Team.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>

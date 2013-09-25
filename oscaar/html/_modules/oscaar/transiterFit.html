@@ -1,0 +1,437 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>oscaar.transiterFit &mdash; OSCAAR 0b documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0b',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="OSCAAR 0b documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 0b documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for oscaar.transiterFit</h1><div class="highlight"><pre>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">import</span> <span class="nn">oscaar</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">optimize</span>
+<span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">shuffle</span>
+<span class="kn">from</span> <span class="nn">oscaar.extras.knownSystemParameters</span> <span class="kn">import</span> <span class="n">returnSystemParams</span>
+
+<span class="c">#Work below is from Nolan Matthews while relying on some of Brett Morris&#39;s</span>
+<span class="c">#code, particularly the transitModel.py,simulatedLightCurve.py, and</span>
+<span class="c">#modelLightCurve.py scripts. Additionally the light curve model used for fitting</span>
+<span class="c">#is Jason Eastman&#39;s occultquad function (Eastman et. al 2013) based on the analytical derivations</span>
+<span class="c">#from Mandel &amp; Agol (2002) and using C implementation from Brett Morris.</span>
+<span class="c">#See the transitModel.py file for more info. </span>
+
+<span class="c">#The script below allows two functionalities. There are some functions</span>
+<span class="c">#defined that allow the user to create a fake dataset. These were used</span>
+<span class="c">#to develop a random MC fitting routine which relies on the scipy</span>
+<span class="c">#function optimize.curve_fit. There is a tutorial on how to use the functions</span>
+<span class="c">#which can found at www.github.com/OSCAAR/oscaar/. The optimize.curve_fit tool uses a least square </span>
+<span class="c">#Levenburg-Marquadt (sp?) algorithm. Caution should be taken to the initial</span>
+<span class="c">#guesses for the parameters as least sq. LM fitting typically will find</span>
+<span class="c">#a local minimum. One can find archival results using XXX.</span>
+
+<span class="c">#Make Fake Datasets using random number generator to test fitting function</span>
+<div class="viewcode-block" id="fake_data"><a class="viewcode-back" href="../../oscaar.html#oscaar.transiterFit.fake_data">[docs]</a><span class="k">def</span> <span class="nf">fake_data</span><span class="p">(</span><span class="n">stddev</span><span class="p">,</span><span class="n">RpRs</span><span class="p">,</span><span class="n">aRs</span><span class="p">,</span><span class="n">per</span><span class="p">,</span><span class="n">inc</span><span class="p">,</span><span class="n">midtrantime</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">ecc</span><span class="p">,</span><span class="n">argper</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Takes in orbital and planetary parameters and simulates data using random gaussian fluctations.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters include,</span>
+<span class="sd">    stddev - standard deviation of fake data.</span>
+<span class="sd">    RpRs   - fractional planetary to stellar radius</span>
+<span class="sd">    aRs    - semi-major axis/stellar radii</span>
+<span class="sd">    per    - orbital period (days)</span>
+<span class="sd">    inc    - inclination of orbital plane (degrees)</span>
+<span class="sd">    midtrantime - mid-transit time (JD)</span>
+<span class="sd">    gamma1 - linear limb-darkening coeff.</span>
+<span class="sd">    gamma2 - quadrtic limb-darkening coeff</span>
+<span class="sd">    argper - argument of pericenter</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c">#Define Times (in days) centered at mid-transit time. </span>
+    <span class="n">expTime</span> <span class="o">=</span> <span class="mf">45.</span><span class="o">/</span><span class="p">(</span><span class="mi">3600</span><span class="o">*</span><span class="mf">24.</span><span class="p">)</span> <span class="c">#Set to be 45 sec., somewhat typical for observing.</span>
+    <span class="n">Nimages</span> <span class="o">=</span> <span class="mf">200.</span> <span class="c">#Needs to be long enough to cover entire transit w/ some baseline. </span>
+    <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">midtrantime</span><span class="o">-</span><span class="n">expTime</span><span class="o">*</span><span class="n">Nimages</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span>
+                      <span class="n">stop</span><span class="o">=</span><span class="n">midtrantime</span><span class="o">+</span><span class="n">expTime</span><span class="o">*</span><span class="n">Nimages</span><span class="o">/</span><span class="mf">2.</span><span class="p">,</span>
+                      <span class="n">step</span><span class="o">=</span><span class="n">expTime</span><span class="p">)</span>
+
+    <span class="c">#Creates Gaussian Distributed Data using numpy.random.normal function based on standard dev.</span>
+    
+    <span class="c">#Uses alternate input parameters setup for occultquad.</span>
+    <span class="n">modelParams</span><span class="o">=</span><span class="p">[</span><span class="n">RpRs</span><span class="p">,</span><span class="n">aRs</span><span class="p">,</span><span class="n">per</span><span class="p">,</span><span class="n">inc</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">ecc</span><span class="p">,</span><span class="n">argper</span><span class="p">,</span><span class="n">midtrantime</span><span class="p">]</span>
+    <span class="n">perfect_data</span> <span class="o">=</span> <span class="n">oscaar</span><span class="o">.</span><span class="n">occultquad</span><span class="p">(</span><span class="n">times</span><span class="p">,</span><span class="n">modelParams</span><span class="p">)</span>
+    <span class="n">random_dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span><span class="n">size</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">times</span><span class="p">))</span>
+    <span class="n">fk_data</span> <span class="o">=</span> <span class="n">perfect_data</span> <span class="o">+</span> <span class="n">random_dist</span>
+    
+    <span class="k">return</span> <span class="n">times</span><span class="p">,</span><span class="n">fk_data</span>
+
+<span class="c">#Runs the initial fit using the LM least sq. algorithm. </span></div>
+<div class="viewcode-block" id="run_LMfit"><a class="viewcode-back" href="../../oscaar.html#oscaar.transiterFit.run_LMfit">[docs]</a><span class="k">def</span> <span class="nf">run_LMfit</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">NormFlux</span><span class="p">,</span><span class="n">flux_error</span><span class="p">,</span><span class="n">RpRsGuess</span><span class="p">,</span><span class="n">aRsGuess</span><span class="p">,</span><span class="n">incGuess</span><span class="p">,</span><span class="n">epochGuess</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">perGuess</span><span class="p">,</span><span class="n">eccGuess</span><span class="p">,</span><span class="n">argPerGuess</span><span class="p">,</span><span class="n">fitLimbDark</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span><span class="n">plotting</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Fitting routine using the optimize.leastsq Levenburg-Marquardt least squares minimization.</span>
+<span class="sd">    </span>
+<span class="sd">    Input parameters include the time,flux,and uncertainty data series,</span>
+<span class="sd">    </span>
+<span class="sd">    timeObs: ndarray</span>
+<span class="sd">        time data series</span>
+<span class="sd">    NormFlux: ndarray</span>
+<span class="sd">        flux data series</span>
+<span class="sd">    flux_error: ndarray</span>
+<span class="sd">        uncertainty on flux data series</span>
+<span class="sd">    </span>
+<span class="sd">    Type of limb-darkening law specified by the keyword argument,</span>
+<span class="sd">    </span>
+<span class="sd">    fitLimbDark: str or boolean</span>
+<span class="sd">        False    - Assumes gamma1,gamma2 = 0, does not fit for limb-darkening coefficents.</span>
+<span class="sd">        &#39;linear&#39; - Uses linear limb-darkening</span>
+<span class="sd">        &#39;quadratic&#39;- Uses quadratic limb-darkening</span>
+<span class="sd">        </span>
+<span class="sd">    plotting: boolean</span>
+<span class="sd">        Plots fit output w/ data.  </span>
+<span class="sd">    </span>
+<span class="sd">    Orbital and Stellar Parameters intial guesses,</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="c">#Hack for if inclination is entered as 90 degrees. This must be done so that the optimize.curve_fit tool</span>
+    <span class="c">#has room to find a solution. Since we have a constraint on inclination &lt; 90.0 if we start at a number close</span>
+    <span class="c">#90.0 and the first guess for a new inclination is above 90.0 it may throw off the fitting algorithm.</span>
+    
+    <span class="c">#Since eccentricity is generally not constrained well for values below a degree or so,</span>
+    <span class="c">#(expection of extremely high quality data) this is alright to do, though not optimal. In any case, for</span>
+    <span class="c">#better error estimation one should use MCMC not least square minimization.</span>
+    <span class="k">if</span> <span class="n">incGuess</span> <span class="o">==</span> <span class="mf">90.0</span><span class="p">:</span>
+        <span class="n">incGuess</span><span class="o">=</span><span class="mf">89.8</span>
+    
+    <span class="n">RpRsGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">RpRsGuess</span><span class="p">)</span>
+    <span class="n">aRsGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">aRsGuess</span><span class="p">)</span>
+    <span class="n">perGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">perGuess</span><span class="p">)</span>
+    <span class="n">incGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">incGuess</span><span class="p">)</span>
+    <span class="n">epochGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">epochGuess</span><span class="p">)</span>
+    <span class="n">gamma1</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">gamma1</span><span class="p">)</span>
+    <span class="n">gamma2</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">gamma2</span><span class="p">)</span>
+    <span class="n">eccGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">eccGuess</span><span class="p">)</span>
+    <span class="n">argPerGuess</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">(</span><span class="n">argPerGuess</span><span class="p">)</span>
+    
+    <span class="c">#Setting up initial guess, dependent on inclusion of limb-darkening</span>
+    <span class="k">if</span> <span class="n">fitLimbDark</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">RpRsGuess</span><span class="p">,</span><span class="n">aRsGuess</span><span class="p">,</span><span class="n">incGuess</span><span class="p">,</span><span class="n">epochGuess</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">fitLimbDark</span> <span class="o">==</span> <span class="s">&#39;linear&#39;</span><span class="p">:</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">RpRsGuess</span><span class="p">,</span><span class="n">aRsGuess</span><span class="p">,</span><span class="n">incGuess</span><span class="p">,</span><span class="n">epochGuess</span><span class="p">,</span><span class="n">gamma1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">fitLimbDark</span> <span class="o">==</span> <span class="s">&#39;quadratic&#39;</span><span class="p">:</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">RpRsGuess</span><span class="p">,</span><span class="n">aRsGuess</span><span class="p">,</span><span class="n">incGuess</span><span class="p">,</span><span class="n">epochGuess</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">)</span>
+    
+    <span class="k">def</span> <span class="nf">occultquadForTransiter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">t0</span><span class="p">,</span><span class="n">gamma1</span><span class="o">=</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="o">=</span><span class="n">gamma2</span><span class="p">,</span><span class="n">P</span><span class="o">=</span><span class="n">perGuess</span><span class="p">,</span><span class="n">e</span><span class="o">=</span><span class="n">eccGuess</span><span class="p">,</span><span class="n">longPericenter</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Defines oscaar.occultquad differently to be compatible w/ optimize.curve_fit</span>
+<span class="sd">        </span>
+<span class="sd">        If a parameter goes outside physical boundries then it returns</span>
+<span class="sd">        an array of zeros, such that the chi squared value is extremely high.</span>
+<span class="sd">        </span>
+<span class="sd">        Constraints:</span>
+<span class="sd">        Limb-darkening Coeff&#39;s -- 0.0 &lt; gamma &lt; 1.0</span>
+<span class="sd">        Inclination &lt; 90 degrees</span>
+<span class="sd">        Impact Parameter &lt; 1 (assumes no grazing transits)</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        
+        <span class="n">b</span><span class="o">=</span><span class="n">ap</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mf">90.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">gamma2</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma2</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">modelParams</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">e</span><span class="p">,</span><span class="n">longPericenter</span><span class="p">,</span><span class="n">t0</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">oscaar</span><span class="o">.</span><span class="n">occultquad</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">modelParams</span><span class="p">)</span>
+
+    <span class="c">#Runs the initial fit</span>
+    <span class="n">fit</span><span class="p">,</span><span class="n">success</span><span class="o">=</span><span class="n">optimize</span><span class="o">.</span><span class="n">curve_fit</span><span class="p">(</span><span class="n">occultquadForTransiter</span><span class="p">,</span>
+                                   <span class="n">xdata</span><span class="o">=</span><span class="n">timeObs</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float64&#39;</span><span class="p">),</span>
+                                   <span class="n">ydata</span><span class="o">=</span><span class="n">NormFlux</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float64&#39;</span><span class="p">),</span>
+                                   <span class="n">p0</span><span class="o">=</span><span class="n">initGuess</span><span class="p">,</span>
+                                   <span class="n">sigma</span><span class="o">=</span><span class="mf">0.01</span><span class="o">*</span><span class="n">flux_error</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s">&#39;float64&#39;</span><span class="p">),</span>
+                                   <span class="n">maxfev</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+                                   <span class="n">xtol</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
+                                   <span class="n">ftol</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">finfo</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span><span class="o">.</span><span class="n">eps</span><span class="p">,</span>
+                                   <span class="c">#epsfcn=0.00001,</span>
+                                   <span class="c">#diag=(1.0,1.0,1.0,1.0,1.0,1.0),</span>
+                                   <span class="n">factor</span><span class="o">=</span><span class="mf">0.3</span>
+                                   <span class="p">)</span>
+
+    <span class="c">#Check for Convergence    </span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">success</span><span class="p">)</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;The initial fit was not able to converge. Check to see if the input parameters are accurate.&quot;</span>
+        <span class="k">print</span> <span class="s">&quot;&quot;</span>
+    
+    <span class="c">#Create model, dependent on inclusion of limb-darkening</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">modelOut</span>  <span class="o">=</span> <span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">modelOut</span>  <span class="o">=</span> <span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">gam1Fit</span> <span class="o">=</span> <span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="n">modelOut</span>  <span class="o">=</span> <span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">gam1Fit</span><span class="p">,</span><span class="n">gam2Fit</span> <span class="o">=</span> <span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+     
+    <span class="c">#If Convergence is True, look at the results to double check.</span>
+    <span class="n">residual</span> <span class="o">=</span> <span class="n">modelOut</span> <span class="o">-</span> <span class="n">timeObs</span>
+    <span class="k">print</span> <span class="s">&quot;Results from the initial fit&quot;</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;Rp/Rs&quot;</span><span class="p">,</span><span class="s">&quot;a/Rs&quot;</span><span class="p">,</span><span class="s">&quot;inc&quot;</span><span class="p">,</span><span class="s">&quot;Mid-Tran Time&quot;</span><span class="p">,</span><span class="s">&quot;Gamma 1&quot;</span><span class="p">,</span><span class="s">&quot;Gamma 2&quot;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">fit</span><span class="p">)):</span>
+        <span class="k">print</span> <span class="n">params</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">print</span> <span class="s">&quot;&quot;</span>
+        
+    <span class="c">#Visually check to see if it&#39;s reasonable</span>
+    <span class="k">if</span> <span class="n">plotting</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fitLimbDark</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+        <span class="k">elif</span> <span class="n">fitLimbDark</span> <span class="o">==</span> <span class="s">&#39;linear&#39;</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>            
+        <span class="k">elif</span> <span class="n">fitLimbDark</span> <span class="o">==</span> <span class="s">&#39;quadratic&#39;</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">]))</span>            
+        
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">NormFlux</span><span class="p">,</span><span class="s">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Result from initial LM Fit&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;JD (d)&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">xmin</span><span class="o">=</span><span class="n">timeObs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">xmax</span><span class="o">=</span><span class="n">timeObs</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">timeObs</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">fit</span><span class="p">,</span><span class="n">success</span>
+    
+<span class="c">#Run Prayer-Bead or Random Markov Chain to estimate uncertainties.</span>
+
+<span class="c">#Shuffle Function, had to be modded for data type reasons.</span></div>
+<div class="viewcode-block" id="shuffle_func"><a class="viewcode-back" href="../../oscaar.html#oscaar.transiterFit.shuffle_func">[docs]</a><span class="k">def</span> <span class="nf">shuffle_func</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">shuffle</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+<span class="c">#Function that allows one to determine model uncertainties using a random</span>
+<span class="c">#Monte Carlo method. </span></div>
+<div class="viewcode-block" id="run_MCfit"><a class="viewcode-back" href="../../oscaar.html#oscaar.transiterFit.run_MCfit">[docs]</a><span class="k">def</span> <span class="nf">run_MCfit</span><span class="p">(</span><span class="n">n_iter</span><span class="p">,</span><span class="n">timeObs</span><span class="p">,</span><span class="n">NormFlux</span><span class="p">,</span><span class="n">flux_error</span><span class="p">,</span><span class="n">fit</span><span class="p">,</span><span class="n">success</span><span class="p">,</span><span class="n">perGuess</span><span class="p">,</span><span class="n">eccGuess</span><span class="p">,</span><span class="n">argPerGuess</span><span class="p">,</span><span class="n">gamma1</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span><span class="n">gamma2</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span><span class="n">plotting</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+
+    
+    <span class="c">#Sets up occultquadForTransiter to be minimized based on limb-darkening choice. </span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span><span class="o">==</span><span class="mi">4</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">occultquadForTransiter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">t0</span><span class="p">,</span><span class="n">gamma1</span><span class="o">=</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="o">=</span><span class="n">gamma2</span><span class="p">,</span><span class="n">P</span><span class="o">=</span><span class="n">perGuess</span><span class="p">,</span><span class="n">e</span><span class="o">=</span><span class="n">eccGuess</span><span class="p">,</span><span class="n">longPericenter</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">ap</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mf">90.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">gamma2</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma2</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mf">75.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">modelParams</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">e</span><span class="p">,</span><span class="n">longPericenter</span><span class="p">,</span><span class="n">t0</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">oscaar</span><span class="o">.</span><span class="n">occultquad</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">modelParams</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span><span class="o">==</span><span class="mi">5</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">occultquadForTransiter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">t0</span><span class="p">,</span><span class="n">gamma1</span><span class="o">=</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">gamma2</span><span class="o">=</span><span class="n">gamma2</span><span class="p">,</span><span class="n">P</span><span class="o">=</span><span class="n">perGuess</span><span class="p">,</span><span class="n">e</span><span class="o">=</span><span class="n">eccGuess</span><span class="p">,</span><span class="n">longPericenter</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">ap</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mf">90.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">gamma2</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma2</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mf">75.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">modelParams</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">e</span><span class="p">,</span><span class="n">longPericenter</span><span class="p">,</span><span class="n">t0</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">oscaar</span><span class="o">.</span><span class="n">occultquad</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">modelParams</span><span class="p">)</span>        
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span><span class="o">==</span><span class="mi">6</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">occultquadForTransiter</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">t0</span><span class="p">,</span><span class="n">gamma1</span><span class="o">=</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">gamma2</span><span class="o">=</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span><span class="n">P</span><span class="o">=</span><span class="n">perGuess</span><span class="p">,</span><span class="n">e</span><span class="o">=</span><span class="n">eccGuess</span><span class="p">,</span><span class="n">longPericenter</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+            <span class="n">b</span><span class="o">=</span><span class="n">ap</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">b</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mf">90.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma1</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">gamma2</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">gamma2</span> <span class="o">&gt;</span> <span class="mf">1.0</span> <span class="ow">or</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mf">75.0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">modelParams</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="p">,</span><span class="n">ap</span><span class="p">,</span><span class="n">P</span><span class="p">,</span><span class="n">i</span><span class="p">,</span><span class="n">gamma1</span><span class="p">,</span><span class="n">gamma2</span><span class="p">,</span><span class="n">e</span><span class="p">,</span><span class="n">longPericenter</span><span class="p">,</span><span class="n">t0</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">oscaar</span><span class="o">.</span><span class="n">occultquad</span><span class="p">(</span><span class="n">t</span><span class="p">,</span><span class="n">modelParams</span><span class="p">)</span>        
+    
+    
+    <span class="n">RpFit</span><span class="p">,</span><span class="n">aRsFit</span><span class="p">,</span><span class="n">incFit</span><span class="p">,</span><span class="n">epochFit</span> <span class="o">=</span> <span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    
+    <span class="c">#Create model, dependent on inclusion of limb-darkening</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">modelOut</span>  <span class="o">=</span> <span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">modelOut</span>  <span class="o">=</span> <span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">gam1Fit</span> <span class="o">=</span> <span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="n">modelOut</span>  <span class="o">=</span> <span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">initGuess</span> <span class="o">=</span> <span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">gam1Fit</span><span class="p">,</span><span class="n">gam2Fit</span> <span class="o">=</span> <span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+    
+    <span class="n">residuals</span> <span class="o">=</span> <span class="n">NormFlux</span> <span class="o">-</span> <span class="n">modelOut</span>
+    
+    <span class="c">#Generate random datasets based on residuals from inital fit. </span>
+    <span class="n">n_sets</span> <span class="o">=</span> <span class="n">n_iter</span>
+    <span class="n">Rp</span><span class="p">,</span><span class="n">aRs</span><span class="p">,</span><span class="n">inc</span><span class="p">,</span><span class="n">mid</span><span class="p">,</span><span class="n">gam1</span><span class="p">,</span><span class="n">gam2</span><span class="o">=</span><span class="p">[],[],[],[],[],[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">n_sets</span><span class="p">):</span>
+    
+        <span class="c">#Randomly shuffling both data/uncertainties together </span>
+        <span class="n">MCset</span><span class="p">,</span><span class="n">randSet</span><span class="p">,</span><span class="n">SigSet</span> <span class="o">=</span> <span class="p">[],[],[]</span>
+        <span class="n">index_shuf</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">residuals</span><span class="p">))</span>
+        <span class="n">shuffle</span><span class="p">(</span><span class="n">index_shuf</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index_shuf</span><span class="p">:</span>
+            <span class="n">MCset</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">residuals</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">SigSet</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flux_error</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        
+        <span class="c">#Generate random dataset and fit to the function.</span>
+        <span class="n">randSet</span> <span class="o">=</span> <span class="n">MCset</span> <span class="o">+</span> <span class="n">modelOut</span>
+        <span class="n">fit</span><span class="p">,</span><span class="n">success</span><span class="o">=</span><span class="n">optimize</span><span class="o">.</span><span class="n">curve_fit</span><span class="p">(</span><span class="n">occultquadForTransiter</span><span class="p">,</span>
+                                    <span class="n">xdata</span><span class="o">=</span><span class="n">timeObs</span><span class="p">,</span>
+                                   <span class="n">ydata</span><span class="o">=</span><span class="n">randSet</span><span class="p">,</span>
+                                   <span class="n">p0</span><span class="o">=</span><span class="n">initGuess</span><span class="p">,</span>
+                                   <span class="n">maxfev</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+                                   <span class="n">sigma</span><span class="o">=</span><span class="n">SigSet</span><span class="p">,</span>
+                                   <span class="c">#diag=(0.1,0.1,0.1,1.0,0.1,0.1),</span>
+                                   <span class="c">#epsfcn=0.1,</span>
+                                   <span class="n">factor</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+                                   <span class="n">xtol</span><span class="o">=</span><span class="mf">2e-15</span><span class="p">,</span>
+                                   <span class="n">ftol</span><span class="o">=</span><span class="mf">2e-15</span><span class="p">,</span>
+                                   <span class="p">)</span>
+        
+        <span class="c">#Save output parameters from fit</span>
+        <span class="n">Rp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">aRs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">inc</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">mid</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">gam1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">gam2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            
+        <span class="k">if</span> <span class="n">plotting</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">]))</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">fit</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span><span class="n">fit</span><span class="p">[</span><span class="mi">5</span><span class="p">]))</span>
+
+    <span class="c">#Visually compare MC fits to inital fit and observational data.</span>
+    <span class="k">if</span> <span class="n">plotting</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">NormFlux</span><span class="p">,</span><span class="n">yerr</span><span class="o">=</span><span class="n">flux_error</span><span class="p">,</span><span class="n">linestyle</span><span class="o">=</span><span class="s">&#39;None&#39;</span><span class="p">,</span><span class="n">marker</span><span class="o">=</span><span class="s">&#39;.&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s">&quot;Data&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">RpFit</span><span class="p">,</span><span class="n">aRsFit</span><span class="p">,</span><span class="n">incFit</span><span class="p">,</span><span class="n">epochFit</span><span class="p">),</span>
+                     <span class="n">lw</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s">&quot;Inital Fit&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">RpFit</span><span class="p">,</span><span class="n">aRsFit</span><span class="p">,</span><span class="n">incFit</span><span class="p">,</span><span class="n">epochFit</span><span class="p">,</span><span class="n">gam1Fit</span><span class="p">),</span>
+                     <span class="n">lw</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s">&quot;Inital Fit&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">occultquadForTransiter</span><span class="p">(</span><span class="n">timeObs</span><span class="p">,</span><span class="n">RpFit</span><span class="p">,</span><span class="n">aRsFit</span><span class="p">,</span><span class="n">incFit</span><span class="p">,</span><span class="n">epochFit</span><span class="p">,</span><span class="n">gam1Fit</span><span class="p">,</span><span class="n">gam2Fit</span><span class="p">),</span>
+                     <span class="n">lw</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s">&#39;k&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s">&quot;Inital Fit&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s">&#39;Results from Random MC Fits&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;JD (days)&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;Normalized Flux&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlim</span><span class="p">(</span><span class="n">xmin</span><span class="o">=</span><span class="n">timeObs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">xmax</span><span class="o">=</span><span class="n">timeObs</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">timeObs</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+        
+    <span class="k">print</span> <span class="s">&#39;&#39;&#39;Results from bootstrap MC fit . . . . .</span>
+<span class="s">    </span>
+<span class="s">Uncertainties are calculated by standard deviation of the different fits using the bootstrap MC method.</span>
+<span class="s">    </span>
+<span class="s">    &#39;&#39;&#39;</span>
+    <span class="k">print</span> <span class="s">&quot;Planetary to Stellar Radius: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Rp</span><span class="p">),</span><span class="s">&quot;+/-&quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">Rp</span><span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;Semi-major Axis to Stellar Radius: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">aRs</span><span class="p">),</span><span class="s">&quot;+/-&quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">aRs</span><span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;Inclination of Orbit: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">inc</span><span class="p">),</span><span class="s">&quot;+/-&quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">inc</span><span class="p">)</span>
+    <span class="k">print</span> <span class="s">&quot;Mid-Transit Time [JD]: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">mid</span><span class="p">),</span><span class="s">&quot;+/-&quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">mid</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;Gamma 1: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">gam1</span><span class="p">),</span><span class="s">&quot;+/-&quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">gam1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fit</span><span class="p">)</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s">&quot;Gamma 2: &quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">gam2</span><span class="p">),</span><span class="s">&quot;+/-&quot;</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">gam2</span><span class="p">)</span>
+        
+    <span class="k">return</span> <span class="n">Rp</span><span class="p">,</span><span class="n">aRs</span><span class="p">,</span><span class="n">inc</span><span class="p">,</span><span class="n">mid</span><span class="p">,</span><span class="n">gam1</span><span class="p">,</span><span class="n">gam2</span>
+</div>
+<div class="viewcode-block" id="calcMidTranTime"><a class="viewcode-back" href="../../oscaar.html#oscaar.transiterFit.calcMidTranTime">[docs]</a><span class="k">def</span> <span class="nf">calcMidTranTime</span><span class="p">(</span><span class="n">times</span><span class="p">,</span><span class="n">flux</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;Estimates mid-transit time by extracting the minimum of differently binned datasets&#39;&#39;&#39;</span>
+    
+    <span class="c">#For binning of sets from 5 - 15 data points calculate minimum</span>
+    <span class="n">midEstimate</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">binnedTime</span><span class="p">,</span><span class="n">binnedFlux</span><span class="o">=</span><span class="n">oscaar</span><span class="o">.</span><span class="n">medianBin</span><span class="p">(</span><span class="n">times</span><span class="p">,</span><span class="n">flux</span><span class="p">,</span><span class="n">medianWidth</span><span class="o">=</span><span class="n">i</span><span class="o">+</span><span class="mi">5</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">binnedFlux</span><span class="o">-</span><span class="n">binnedFlux</span><span class="o">.</span><span class="n">min</span><span class="p">()))</span><span class="o">.</span><span class="n">argmin</span><span class="p">()</span>
+        <span class="n">midEstimate</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">=</span><span class="n">binnedTime</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">midEstimate</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">OSCAAR 0b documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Coders.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2b1.
+    </div>
+  </body>
+</html>
