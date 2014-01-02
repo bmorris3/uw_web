@@ -5,6 +5,14 @@
 \setlength{\textwidth}{6.2in} % set width of text portion
 \newcommand{\code}[1]{\texttt{#1}}
 \usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,       % false: boxed links; true: colored links
+    linkcolor=red,          % color of internal links (change box color with linkbordercolor)
+    citecolor=green,        % color of links to bibliography
+    filecolor=magenta,      % color of file links
+    urlcolor=blue           % color of external links
+}
+
 \begin{document}
 
 % Center the name over the entire width of resume:
@@ -14,7 +22,7 @@
 % Draw a horizontal line the whole width of resume:
 \moveleft\hoffset\vbox{\hrule width\resumewidth height 1pt}\smallskip
  \moveleft.5\hoffset\centerline{Email: \href{mailto:bmmorris@uw.edu}{bmmorris@uw.edu}}
- \moveleft.5\hoffset\centerline{Department Website: \url{http://www.astro.umd.edu/~bmorris3/}}
+ \moveleft.5\hoffset\centerline{Department Website: \url{http://staff.washington.edu/bmmorris}}
 
 %% Select character to use as the bullet marker. 
 %% Comment out to get normal dark filled circle bullets
@@ -23,11 +31,11 @@
 \begin{resume}
 
 \section{Education} 
-University of Washington, Seattle, WA. \hfill 2013 -- present\\
-Graduate student in astronomy and astrobiology (dual-title PhD program)
+University of Washington, Seattle, WA \hfill 2013 -- present\\
+Graduate student in Astronomy and Astrobiology (dual-title PhD program)\\
+Astrobiology Fellow (2013)
 
-
-University of Maryland, College Park, MD.  \hfill 2009 -- 2012\\
+University of Maryland, College Park, MD  \hfill 2009 -- 2012\\
 B.S.\ with High Honors in Astronomy \\
 B.S.\ in Physics (double degree)\\
  
@@ -76,14 +84,6 @@ and UMD's High Performance Computing Cluster, computed for more than 4 years of 
                    \item Produce visualizations with VisIt to emphasize relevant astrophysical processes in model black hole accretion disks in Python. \\
                    \end{itemize} 
 
-\section{Publications} 
-                % {\sl Publications}
-                 \begin{itemize}   
-                  \item \href{http://adsabs.harvard.edu/abs/2013ApJ...764L..22M}{\textbf{Morris, B.M.}, Mandell, A.M., Deming, D. ``Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening.'' The Astrophysical Journal Letters, Volume 764, Issue 2, article id.\ L22, 5 pp.\ (2013).}
-                 	%\item \textbf{Morris, B.M.} \& Richardson, D.C. ``Numerical Simulations of Rotational Fission of Contact Binary Asteroids.'' In preparation.
-		\item \href{http://www.scientificterrapin.umd.edu/Fall2011.php}{\textbf{Morris, B.M.} ``Observations of Transiting Exoplanets with Differential Photometry.'' Scientific Terrapin, Vol.\ III, Issue I.\ Fall 2011.}\\
-                 \end{itemize}
-
 \section{Honors\\And\\Awards} 
                  \begin{itemize}   
                   \item Astrobiology Graduate Fellow, University of Washington, 2013-2014.
@@ -91,23 +91,36 @@ and UMD's High Performance Computing Cluster, computed for more than 4 years of 
                   \item Chambliss Astronomy Achievement Graduate Student Award Honorable Mention. 222$^{\mathtt{nd}}$ AAS, Indianapolis, IN.
 		\item Invited to present thesis for Department of Astronomy Honors, awarded High Honors citation (2012).
                   \item UMD Presidential Scholar, 2009-2012.
-		\item Feature article in ``Scholars Newsletter'' for research achievements (Feb 2012).
+		\item Feature article in the UMD ``\href{http://www.scholars.umd.edu/news/newsletter/363-february-2012-issue-1}{Scholars Newsletter}'' for research achievements (Feb 2012).
 		\item College Park Scholar in the Science, Discovery and the Universe track, 2009-2011 (a two-year honors 
 		college program at UMD). \\
                  \end{itemize}
-                 
+
+\section{Publications} 
+                % {\sl Publications}
+                 \begin{itemize}   
+                  \item \textbf{Morris, B.M.}, Mandell, A.M., Deming, D. ``\href{http://adsabs.harvard.edu/abs/2013ApJ...764L..22M}{Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening}.'' The Astrophysical Journal Letters, Volume 764, Issue 2, article id.\ L22, 5 pp.\ (2013).
+                 	%\item \textbf{Morris, B.M.} \& Richardson, D.C. ``Numerical Simulations of Rotational Fission of Contact Binary Asteroids.'' In preparation.
+		\item \textbf{Morris, B.M.} ``\href{http://www.scientificterrapin.umd.edu/Fall2011.php}{Observations of Transiting Exoplanets with Differential Photometry}.'' Scientific Terrapin, Vol.\ III, Issue I.\ Fall 2011.\\
+                 \end{itemize}
+
+\section{Press\\Releases} 
+                 \begin{itemize}
+                 \item ``\href{http://www.nasa.gov/content/nasa-funded-program-helps-amateur-astronomers-detect-alien-worlds/}{NASA-funded Program Helps Amateur Astronomers Detect Alien Worlds}''. NASA Goddard Space Flight Center, Greenbelt, Md. September 4, 2013. \\
+                 \end{itemize}              
 
 \section{Professional\\ Presentations} 
                 % {\sl Publications}
                  \begin{itemize}  %\itemsep -5pt %reduce space between items
+                 \item Poster: ``\href{http://nexsci.caltech.edu/conferences/KeplerII/posters/morris.pdf}{Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening}.'' Second Kepler Science Conference, NASA Ames Research Center, Mountain View, CA. November 6, 2013. 
                  \item Poster: ``Differential Photometry with OSCAAR: Open Source Differential Photometry Code for Amateur Astronomical Research''. AbGradCon 2013, McGill University, Montreal, Canada. June 12, 2013.
-                 \item Talk: ``Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening''. AbGradCon 2013, McGill University, Montreal, Canada. June 11, 2013.
-                 \item Poster: ``Differential Photometry with OSCAAR: Open Source Differential Photometry Code for Amateur Astronomical Research''. 222$^\mathtt{nd}$ American Astronomical Society Meeting. Indianapolis, IN. June 4, 2013.
-                 \item \href{https://astrobiology.nasa.gov/seminars/featured-seminar-channels/gsfc-summer-internship/2012/08/09/gsfc-summer-research-associate-presentations/}{Symposium: ``Secondary Eclipse and Transiting Timing of Extra-Solar Planet HAT-P-7b''. 2012 NASA Goddard Space Flight Center Summer Research Associate Symposium. Goddard Center for Astrobiology, NASA Goddard Space Flight Center, Greenbelt, MD, August 9, 2012.}
+                 \item Talk: ``\href{http://youtu.be/ZMfbkCzzQUE}{Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-Induced Stellar Gravity Darkening}''. AbGradCon 2013, McGill University, Montreal, Canada. June 11, 2013.
+                 \item Poster: ``\href{http://adsabs.harvard.edu/abs/2013AAS...22221717M}{Differential Photometry with OSCAAR: Open Source Differential Photometry Code for Amateur Astronomical Research}''. 222$^\mathtt{nd}$ American Astronomical Society Meeting. Indianapolis, IN. June 4, 2013.
+                 \item Talk: ``\href{https://astrobiology.nasa.gov/seminars/featured-seminar-channels/gsfc-summer-internship/2012/08/09/gsfc-summer-research-associate-presentations/}{Secondary Eclipse and Transiting Timing of Extra-Solar Planet HAT-P-7b}.'' 2012 NASA Goddard Space Flight Center Summer Research Associate Symposium. Goddard Center for Astrobiology, NASA Goddard Space Flight Center, Greenbelt, MD, August 9, 2012.
 	        \item Thesis defense:  ``Numerical Simulations of Rotational Fission of Contact Binary Asteroids.'' Department of Astronomy, University of Maryland, College Park, MD. May 4, 2012.
-                 \item \href{http://adsabs.harvard.edu/abs/2012LPICo1667.6352S}{Abstract: Springmann, S., Dalba, P., Marchis, F., Vachier, F., Berthier, J., Descamps, P., \textbf{Morris B.}, 
-		Marciniak, A., Ros, S., Kryszczynska, A. ``Physical and orbital properties of the (22) Kalliope system from mutual eclipse observations.'' 
-		Asteroids, Comets, Meteors. Japan, May 2012.}\\
+                 \item Abstract: Springmann, S., Dalba, P., Marchis, F., Vachier, F., Berthier, J., Descamps, P., \textbf{Morris B.}, 
+		Marciniak, A., Ros, S., Kryszczynska, A. ``\href{http://adsabs.harvard.edu/abs/2012LPICo1667.6352S}{Physical and orbital properties of the (22) Kalliope system from mutual eclipse observations}.'' 
+		Asteroids, Comets, Meteors. Japan, May 2012.\\
 		\end{itemize}
 
 \section{Observing \\Experience}
@@ -117,6 +130,11 @@ and UMD's High Performance Computing Cluster, computed for more than 4 years of 
             \end{itemize}
                  
 \section{Teaching \\Experience}
+	     \textbf{University of Washington}
+            \begin{itemize}   
+            \item Teaching assistant for two sections of ASTR150 The Planets (Fall 2013). 
+            \end{itemize}
+	     \textbf{University of Maryland}
             \begin{itemize}   
             \item Teaching assistant for ASTR310 Observational Astronomy for majors, experienced teaching night labs at the campus observatory (Fall 2011).
             \item Teaching assistant for ASTR100 Introduction to Astronomy for non-majors (Fall 2012).
@@ -131,6 +149,7 @@ and UMD's High Performance Computing Cluster, computed for more than 4 years of 
             \end{itemize}
 	   \textbf{Public Talks}
             \begin{itemize}   
+            	\item ``Astrobiology In The Age Of Kepler.'' TEDxRainier ``after-day'' at the University of Washington Planetarium, Seattle, WA. November 10, 2013. 
                 \item ``Exoplanets: How To Find Them And Their Inhabitants.'' Kopernik Observatory and Science Center, Vestal, NY. July 17, 2013. 
 	       \item ``Earthlings: Get Over Yourselves.'' \textit{Astrobiology Speaks!} Series, Redpath Museum, McGill University, Montreal, Canada. June 11, 2013.	   
 	       \item ``Studying Transiting Exoplanets with the Biggest and Smallest Telescopes On and Off of Earth.'' University of Maryland Observatory Open House Public Talk. College Park, MD. March 5, 2013.
