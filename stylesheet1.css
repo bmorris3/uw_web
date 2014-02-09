@@ -1,7 +1,7 @@
 body {
 	font-family: helvetica, arial, sans-serif;
     padding: 2em;
-	background-color: grey;
+	/*background-color: grey;*/
 	margin-left: auto;
 	margin-right: auto;
 	width: 55em;
@@ -9,8 +9,10 @@ body {
 }
 
 h1 {
-	text-align: center;
+	text-align: left;
+	font-size: 225%;
 }
+
 
 .headinfo {
 	text-align: center;
@@ -45,10 +47,6 @@ h1 {
 	padding-right: 1em;
 }
 
-#navbar td:hover {
-	background-color: silver
-}
-
 #grad td {
 	padding-left: 1.5em;
 	padding-right: 1.5em;
@@ -73,10 +71,11 @@ h1 {
 
 #frontPhoto {
 	display: block;
-	float: left;
-	padding-right: 2em;
+	float: right;
+	padding-top:0em;
+	/*padding-right: 2em;
 	padding-bottom: 1em;
-	margin-bottom: auto;
+	margin-bottom: auto;*/
 }
 
 #rightPhoto{
@@ -93,6 +92,13 @@ h1 {
 	padding-right: 2em;
 }
 
+.tagline {
+	font-size:80%;
+	padding-left: 0em;
+	margin-left: 0em;
+	text-align: center;
+}
+
 .cite{
 	/*color: black;*/
 	/*text-decoration: underline;*/
@@ -107,10 +113,15 @@ div {
 	display: block;
 	/*margin-top: 2em;*/
 	padding: 1.5em;
-	border: solid;
+	/*border: solid;
 	border-color: silver;
-	border-radius: 0.5em;
+	border-radius: 0.5em;*/
 	background-color: white; /*silver;*/
+	line-height: 125%;
+}
+
+title {
+	text-align: left;
 }
 
 a {
@@ -125,8 +136,8 @@ a:hover{
 }
 
 p {
-	margin-left: 2em;
-	margin-right: 2em;
+	margin-left: 3em;
+	margin-right: 3em;
 }
 
 
