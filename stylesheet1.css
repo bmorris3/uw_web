@@ -4,13 +4,8 @@ body {
 	/*background-color: grey;*/
 	margin-left: auto;
 	margin-right: auto;
-	width: 55em;
+	width: 80%;
 	margin-bottom: auto;
-}
-
-h1 {
-	text-align: left;
-	font-size: 225%;
 }
 
 
@@ -30,11 +25,18 @@ h1 {
 
 #navbar{
 	text-align: center;
-/*	padding: 0.5em; */
-/*   display: block;*/
+/*	padding: 0.5em; 
+    display: block;*/
+	font-size: 90%;
     margin-left: auto;
     margin-right: auto;
 	border-collapse: collapse;
+	font-weight: bold;
+}
+
+#navbar td {
+	padding-left: 1em;
+	padding-right: 1em;
 }
 
 .linkList {
@@ -42,10 +44,6 @@ h1 {
 	padding-left: 4em; 
 }
 
-#navbar td {
-	padding-left: 1em;
-	padding-right: 1em;
-}
 
 #grad td {
 	padding-left: 1.5em;
@@ -92,11 +90,34 @@ h1 {
 	padding-right: 2em;
 }
 
+.boldtitle {
+	text-align: left;
+	font-size: 225%;
+	width: 8em;
+}
+
+.lighttitle {
+	text-align: right;
+	font-size: 225%;
+	font-weight: lighter;
+}
+
 .tagline {
-	font-size:80%;
-	padding-left: 0em;
-	margin-left: 0em;
-	text-align: center;
+	font-size: 90%;
+	text-align: right;
+	line-height: 110%;
+	padding-top: 0em;
+}
+
+.titletable {
+	/*margin-left: auto;
+	margin-right: auto;
+	padding-right: 3em;
+*/
+	width: 100%;
+	table-layout:fixed;
+	padding-top: 0em;
+	padding-bottom: 0em;
 }
 
 .cite{
@@ -107,6 +128,14 @@ h1 {
 .advisor {
 	/*text-align: right;*/
 	padding-left: 4em;
+}
+
+hr {
+    border: none;
+    background-color: #ccc;
+    color: #ccc;
+    height: 1px;
+	width: 100%;
 }
 
 div {
