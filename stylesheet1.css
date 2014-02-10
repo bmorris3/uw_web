@@ -1,15 +1,11 @@
 body {
 	font-family: helvetica, arial, sans-serif;
     padding: 2em;
-	background-color: grey;
+	/*background-color: grey;*/
 	margin-left: auto;
 	margin-right: auto;
-	width: 55em;
+	width: 80%;
 	margin-bottom: auto;
-}
-
-h1 {
-	text-align: center;
 }
 
 .headinfo {
@@ -28,16 +24,13 @@ h1 {
 
 #navbar{
 	text-align: center;
-/*	padding: 0.5em; */
-/*   display: block;*/
+/*	padding: 0.5em; 
+    display: block;*/
+	font-size: 90%;
     margin-left: auto;
     margin-right: auto;
 	border-collapse: collapse;
-}
-
-.linkList {
-	list-style-type: none;
-	padding-left: 4em; 
+	font-weight: bold;
 }
 
 #navbar td {
@@ -45,52 +38,64 @@ h1 {
 	padding-right: 1em;
 }
 
-#navbar td:hover {
-	background-color: silver
-}
-
-#grad td {
-	padding-left: 1.5em;
-	padding-right: 1.5em;
-}
-
-#grad tr:hover {
-	background-color: #ECECEC;
-}
-
-#rej {
-	/*background-color: #ECECEC;*/
-	background-color: #F08080 ;
-}
-
-#acc {
-	background-color: #98FB98;
-}
-
-#wait {
-	background-color: #FFCC99;
+.linkList {
+	list-style-type: none;
+	padding-left: 4em; 
 }
 
 #frontPhoto {
 	display: block;
-	float: left;
-	padding-right: 2em;
+	float: right;
+	padding: 2px;
+	background-color: #ccc;
+	margin-left: 1em;
+	/*padding-right: 2em;
 	padding-bottom: 1em;
-	margin-bottom: auto;
+	margin-bottom: auto;*/
 }
 
-#rightPhoto{
+.rightPhoto{
 	display: block;
 	float: right;
 	padding-left: 2em;
 	padding-right: 0em;
 }
 
-#leftPhoto{
+.leftPhoto{
 	display: block;
 	float: left;
 	padding-left: 0em;
 	padding-right: 2em;
+}
+
+.boldtitle {
+	text-align: left;
+	font-size: 225%;
+	width: 8em;
+}
+
+.lighttitle {
+	text-align: right;
+	font-size: 225%;
+	font-weight: lighter;
+}
+
+.tagline {
+	font-size: 90%;
+	text-align: right;
+	line-height: 110%;
+	padding-top: 0em;
+}
+
+.titletable {
+	/*margin-left: auto;
+	margin-right: auto;
+	padding-right: 3em;
+*/
+	width: 100%;
+	table-layout:fixed;
+	padding-top: 0em;
+	padding-bottom: 0em;
 }
 
 .cite{
@@ -103,14 +108,28 @@ h1 {
 	padding-left: 4em;
 }
 
+hr {
+    border: none;
+    background-color: #ccc;
+    color: #ccc;
+    height: 1px;
+	width: 100%;
+}
+
 div {
 	display: block;
 	/*margin-top: 2em;*/
-	padding: 1.5em;
-	border: solid;
+	/*border: solid;
 	border-color: silver;
 	border-radius: 0.5em;
+	padding: 1.5em;
+*/
 	background-color: white; /*silver;*/
+	line-height: 125%;
+}
+
+title {
+	text-align: left;
 }
 
 a {
@@ -119,6 +138,7 @@ a {
 	text-decoration: none;
 	font-size: 105%
 }
+
 a:hover{
 	color: #000099;
 	text-decoration: underline
