@@ -8,7 +8,6 @@ body {
 	margin-bottom: auto;
 }
 
-
 .headinfo {
 	text-align: center;
 	font-size: 80%;
@@ -44,46 +43,25 @@ body {
 	padding-left: 4em; 
 }
 
-
-#grad td {
-	padding-left: 1.5em;
-	padding-right: 1.5em;
-}
-
-#grad tr:hover {
-	background-color: #ECECEC;
-}
-
-#rej {
-	/*background-color: #ECECEC;*/
-	background-color: #F08080 ;
-}
-
-#acc {
-	background-color: #98FB98;
-}
-
-#wait {
-	background-color: #FFCC99;
-}
-
 #frontPhoto {
 	display: block;
 	float: right;
-	padding-top:0em;
+	padding: 2px;
+	background-color: #ccc;
+	margin-left: 1em;
 	/*padding-right: 2em;
 	padding-bottom: 1em;
 	margin-bottom: auto;*/
 }
 
-#rightPhoto{
+.rightPhoto{
 	display: block;
 	float: right;
 	padding-left: 2em;
 	padding-right: 0em;
 }
 
-#leftPhoto{
+.leftPhoto{
 	display: block;
 	float: left;
 	padding-left: 0em;
@@ -141,10 +119,11 @@ hr {
 div {
 	display: block;
 	/*margin-top: 2em;*/
-	padding: 1.5em;
 	/*border: solid;
 	border-color: silver;
-	border-radius: 0.5em;*/
+	border-radius: 0.5em;
+	padding: 1.5em;
+*/
 	background-color: white; /*silver;*/
 	line-height: 125%;
 }
@@ -159,14 +138,15 @@ a {
 	text-decoration: none;
 	font-size: 105%
 }
+
 a:hover{
 	color: #000099;
 	text-decoration: underline
 }
 
 p {
-	margin-left: 3em;
-	margin-right: 3em;
+	margin-left: 2em;
+	margin-right: 2em;
 }
 
 
