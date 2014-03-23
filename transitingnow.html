@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+		<title>Transiting Now</title>
+		<link rel="stylesheet" href="stylesheet1.css" type="text/css" />
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-44343917-1', 'washington.edu');
+          ga('send', 'pageview');
+
+        </script>
+	</head>
+
+	<body>
+		<div id="textDiv">	
+		
+		<table id="navbar">
+			<tr>
+				<td><a href="index.html">Home</a></td>
+				<td><a href="research.html">Research</a></td>
+				<td><a href="teaching.html">Teaching</a></td>
+				<td><a href="astrophoto.html">Astrophoto</a></td>
+				<td><a href="docs/BrettMorrisCV.pdf" onClick="_gaq.push(['_trackEvent', 'PDF', 'Download', 'CV']);">CV</a></td>
+			</tr>
+		</table>
+		
+		<hr>
+		
+		<table class="titletable">
+			<tr>
+				<td><h1 class="boldtitle">Brett M. Morris</h1></td>
+				<td class="lighttitle"><a href="https://twitter.com/transitingnow">@transitingnow</a></td>
+			</tr>
+		</table>
+
+		<hr>
+
+		<div class="twitterfeed">
+		<a class="twitter-timeline" href="https://twitter.com/transitingnow" data-widget-id="447551142650576896">Tweets by @transitingnow</a>
+		<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+		</div>
+
+
+		<h2>What is @transitingnow?</h2>
+		<p>			
+			<a href="https://twitter.com/transitingnow">@transitingnow</a> is a TwitterBot that tweets in the middle of
+			exoplanet transit events -- which occur when a planet in another solar system (an <q>exoplanet</q>) appears
+			to pass in front of its star, causing some of the starlight to be blocked out from our perspective on Earth,
+			allowing us to detect the planet's presence. 
+		</p>
+		<p>
+			It accesses the catalog of exoplanets from <a href="http://www.exoplanets.org/">exoplanets.org</a> and uses
+			the published mid-transit times and periods measured during past transits to extrapolate to future times of
+			transit. It also serves up a mix of facts about the planets like their radii, their orbital distances from 
+			their host stars, the temperatures of their host stars, the distances from Earth to the the exoplanet and
+			the constellation that the stars appear in (when these data are available).
+		</p>
+		<p>
+			<a href="https://twitter.com/transitingnow">@transitingnow</a> is meant to be an educational novelty that
+			demonstrates the vast number of transiting planets discovered. Although no exoplanets were known when
+			@transitingnow's maker was born, today there is a known
+			exoplanet transit happening practically every minute of the day somewhere in the sky. 
+		</p>
+	
+		<h2>How does it work?</h2>
+		<p>
+			Under the hood, <a href="https://twitter.com/transitingnow">@transitingnow</a> makes use of
+		</p>
+
+		<ul>
+			<li><a href="https://www.python.org/">Python</a></li>
+			<li><a href="https://github.com/tweepy/tweepy">Tweepy</a> for posting to Twitter</li>
+			<li>Some guts of <a href="https://github.com/OSCAAR/OSCAAR">OSCAAR</a> for managing the exoplanets.org data</li>
+			<li><a href="http://www.astropy.org/">astropy</a> for converting between timing conventions</li>
+			<li><a href="http://rhodesmill.org/pyephem/index.html">PyEphem</a> for finding which constellation
+				each planet is in</li> 
+		</ul>
+	
+		<h3>Acknowledgements</h3>
+		<p>
+			Shout out to Jason Wright (<a href="https://twitter.com/Astro_Wright">@Astro_Wright</a>) for
+			<a href="http://www.exoplanets.org/">exoplanets.org</a>, and to Jim Davenport
+			(<a href="https://twitter.com/jradavenport">@jradavenport</a>) for introducing me to
+			<a href="https://github.com/tweepy/tweepy">Tweepy</a> via his project
+			<a href="http://mocktwainbot.blogspot.com/">MockTwain</a>.
+		</p>
+	
+		<img class="rightPhoto" src="images/uwLogo.png" alt="University of Washington Logo"> 
+
+		<hr>	
+		</div>
+		
+		<div class="tagline">
+		Graduate Student in the Department of Astronomy and Astrobiology Program at the University of Washington, Seattle
+		</div>
+
+	</body>
+</html>

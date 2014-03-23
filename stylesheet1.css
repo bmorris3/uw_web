@@ -54,6 +54,13 @@ body {
 	margin-bottom: auto;*/
 }
 
+.twitterfeed{
+	display: block;
+	float: right;
+	padding-left: 2em;
+	padding-right: 0em;
+}
+
 .rightPhoto{
 	display: block;
 	float: right;
