@@ -54,9 +54,23 @@ body {
 	margin-bottom: auto;*/
 }
 
-.twitterfeed{
+.twitterfeedR{
 	display: block;
 	float: right;
+	padding-left: 2em;
+	padding-right: 0em;
+}
+
+.twitterfeedL{
+	display: block;
+	float: left;
+	padding-left: 2em;
+	padding-right: 0em;
+}
+
+.twitterfeed{
+	display: block;
+	/*float: right;*/
 	padding-left: 2em;
 	padding-right: 0em;
 }
@@ -92,6 +106,10 @@ body {
 	text-align: right;
 	line-height: 110%;
 	padding-top: 0em;
+}
+
+.twitterbutton {
+	float: right;
 }
 
 .titletable {
