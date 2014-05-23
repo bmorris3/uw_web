@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-1.40.11 (TeX Live 2010) (format=pdflatex 2010.7.21)  23 MAY 2014 09:48
+This is pdfTeX, Version 3.1415926-1.40.11 (TeX Live 2010) (format=pdflatex 2010.7.21)  23 MAY 2014 09:58
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -294,15 +294,10 @@ Underfull \hbox (badness 10000) in paragraph at lines 142--143
 
  []
 
-
-Underfull \hbox (badness 10000) in paragraph at lines 147--148
-
- []
-
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 172.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 174.
 [3]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 172.
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 172.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 174.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 174.
  ) 
 Here is how much of TeX's memory you used:
  4523 strings out of 493747
@@ -322,7 +317,7 @@ cal/texlive/2010/texmf-dist/fonts/type1/public/amsfonts/cm/cmsl10.pfb></usr/loc
 al/texlive/2010/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/loca
 l/texlive/2010/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local
 /texlive/2010/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt8.pfb>
-Output written on BrettMorrisCV.pdf (3 pages, 125353 bytes).
+Output written on BrettMorrisCV.pdf (3 pages, 125512 bytes).
 PDF statistics:
  80 PDF objects out of 1000 (max. 8388607)
  64 compressed objects within 1 object stream
