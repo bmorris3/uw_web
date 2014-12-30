@@ -46,7 +46,7 @@ body {
 #frontPhoto {
 	display: block;
 	float: right;
-	padding: 2px;
+	padding: 4px;
 	background-color: #ccc;
 	margin-left: 1em;
 	/*padding-right: 2em;
