@@ -239,6 +239,7 @@ object {
   position: relative;
   width: 78%;
   min-width: 35em;
+  max-width: 50em;
   left: 8em;
   /*margin-left: 17%;*/
   margin-left: 5%;
