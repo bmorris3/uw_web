@@ -212,6 +212,7 @@ object {
   background-color: #474747;
   height: 100%;
   width: 12%;
+  min-width: 8em;
   position: fixed;
   top: 0;
   left: 0;
@@ -235,8 +236,12 @@ object {
 }
 
 #rightpanel {
+  position: relative;
   width: 78%;
-  margin-left: 17%;
+  min-width: 35em;
+  left: 8em;
+  /*margin-left: 17%;*/
+  margin-left: 5%;
   margin-right: 5%;
 }
 
