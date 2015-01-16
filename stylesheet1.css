@@ -4,7 +4,7 @@ body {
 	/*background-color: grey;*/
 	margin-left: auto;
 	margin-right: auto;
-	width: 80%;
+	/*width: 80%;*/
 	margin-bottom: auto;
 }
 
@@ -46,7 +46,7 @@ body {
 #frontPhoto {
 	display: block;
 	float: right;
-	padding: 2px;
+	padding: 4px;
 	background-color: #ccc;
 	margin-left: 1em;
 	/*padding-right: 2em;
@@ -123,6 +123,12 @@ body {
 	padding-bottom: 0em;
 }
 
+#twittercell td {
+	width: 30%;
+	padding-top: 0em;
+	padding-bottom: 0em;
+}
+
 .cite{
 	/*color: black;*/
 	/*text-decoration: underline;*/
@@ -177,6 +183,7 @@ a:hover{
 p {
 	margin-left: 2em;
 	margin-right: 2em;
+	color: #1F1F1F;
 }
 
 
@@ -200,3 +207,42 @@ object {
     margin-left: auto;
     margin-right: auto;
 }
+
+#leftpanel {
+  background-color: #474747;
+  height: 100%;
+  width: 12%;
+  min-width: 8em;
+  position: fixed;
+  top: 0;
+  left: 0;
+  text-align: right;
+  padding-top: 10%;
+  padding-right: 1%;
+  font-weight: thin;
+  line-height: 275%;
+  color: white;
+}
+
+#leftpanel a {
+  color: white;
+  text-decoration: none;
+  font-size: 105%
+}
+
+#leftpanel a:hover{
+  color: #9ED6E9;
+  text-decoration: underline
+}
+
+#rightpanel {
+  position: relative;
+  width: 78%;
+  min-width: 35em;
+  max-width: 50em;
+  left: 8em;
+  /*margin-left: 17%;*/
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
