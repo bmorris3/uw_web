@@ -1782,7 +1782,7 @@
 
 		/* Me */
 
-			#me .pic {
+			#home .pic {
 				width: 100%;
 			}
 
@@ -1795,7 +1795,7 @@
 					display: none;
 				}
 
-			#me header {
+			#home header {
 				text-align: center;
 			}
 
