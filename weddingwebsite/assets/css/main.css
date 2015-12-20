@@ -907,7 +907,7 @@
 /* Basic */
 
 	body {
-		background-image: url("images/overlay.png"), url("images/bg.jpg");
+		background-image: url("images/overlay.png"), url("images/bg2.jpg");
 		background-repeat: repeat, no-repeat;
 		background-size: auto, 100% 100%;
 		font-family: 'Source Sans Pro', sans-serif;
@@ -1378,6 +1378,10 @@
 			h3, h4, h5, h6 {
 				font-size: 1.25em;
 				letter-spacing: -0.015em;
+			}
+
+			a {
+				color: #687db3;
 			}
 
 		/* Section/Article */
