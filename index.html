@@ -38,8 +38,8 @@
 				<nav id="nav">
 					<ul>
 						<li><a href="#one" class="active">About</a></li>
-						<li><a href="#exoplanets">Exoplanets</a></li>
 						<li><a href="#stars">Stars</a></li>
+						<li><a href="#exoplanets">Exoplanets</a></li>
 						<li><a href="#astrobio">Astrobiology</a></li>
 						<li><a href="#code">Code</a></li>
 						<li><a href="#outreach">Outreach</a></li>
@@ -75,24 +75,59 @@
 										<h2>Brett M. Morris</h2>
 										<p>Characterizing exoplanets and their host stars</p>
 									</header>
-									<p>I am a fourth year graduate student in the dual-title PhD Astronomy and Astrobiology
+									<p>I am a fifth year PhD candidate in the dual-title PhD Astronomy and Astrobiology
 									Program at the University of Washington in Seattle. My research interests sit at the intersection
 									characterizing exoplanets and their host stars. I work with ground and space-based
-									observations to measure the compositions and structures of exoplanet atmospheres, 
-									planet masses, and properties of planet-hosting stars.</p>
+									observations to measure the properties of planet-hosting stars, the compositions and structures 
+									of exoplanet atmospheres, and exoplanet masses.</p>
 
 									<p>You can find my <a href="http://staff.washington.edu/bmmorris/docs/BrettMorrisCV.pdf">
 									CV in PDF form here</a>, or you can scroll down for an abridged web version.</p>
 								</div>
 							</section>
 
-						<!-- Two -->
+							<!-- Two -->
+
+							<section id="stars">
+								<div class="container">
+								<h2>Stars</h2>
+									<div class="features">
+									<!--<article>
+										<a href="#" class="image"><img src="images/transit044.gif" alt="CaII H chromospheric activity of HAT-P-11" /></a> -->
+									<h4>Starspot Mapping of HAT-P-11</h4>
+										<div class="inner">
+											<img src="images/transit033.gif" alt="CaII H chromospheric activity of HAT-P-11" width=600/>
+											<p>We only know as much about an exoplanet as we know about its host star, which is why I 
+											collaborate with Professors 
+											<a href="http://www.hws.edu/academics/physics/facultyProfile.aspx?facultyID=161">Leslie Hebb</a> 
+											(HWS), <a href="https://faculty.washington.edu/slhawley/">Suzanne Hawley</a> (UW) and 
+										    Dr. <a href="http://jradavenport.github.io">James Davenport</a> (WWU) on Kepler observations
+										    of spotted host stars of transiting planets. Transits allow us to break degeneracies and locate
+										    star spots on the surface of the star with precision from photometry alone.</p>
+										</div>
+									<!--</article>-->
+									<article>
+										<h4>Chromospheric Activity</h4>
+										<a href="#" class="image"><img src="images/hatp11_caiih.png" alt="CaII H chromospheric activity of HAT-P-11" /></a>
+										<div class="inner">
+										<p>I am collecting spectra of active G/K stars with the echelle spectrograph on the ARC 3.5 m 
+										Telescope at APO, and working with archival spectra from Keck/HIRES, to put HAT-P-11 into context
+									    among planet-hosting stars of similar mass. Our paper on the chromospheric activity of HAT-P-11
+									    has been submitted, arXiv submission coming soon!</p>
+										</div>
+									</article>
+									</div>
+								</div>
+							</section>
+
+							<!-- Three -->
 							<section id="exoplanets">
 								<div class="container">
-									<h3>Exoplanet Characterization</h3>
+									<h2>Exoplanet Characterization</h2>
 
 									<div class="features">
 										<article>
+											<h4>Transit Timing Variations</h4>
 											<a href="#" class="image"><img src="images/arc35m.png" alt="ARC 3.5m telescope" /></a>
 											<div class="inner">
 												<p>I work with Professor <a href="http://www.astro.washington.edu/users/agol/">Eric Agol</a> (UW) 
@@ -101,6 +136,7 @@
 											</div>
 										</article>
 										<article>
+											<h4>Transmission spectroscopy</h4>
 											<a href="#" class="image"><img src="images/keck.png" alt="Keck Observatory" /></a>
 											<div class="inner">
 												<p>I also collaborate with Dr. <a href="http://astrobiology.gsfc.nasa.gov/mandell/">Avi Mandell</a> 
@@ -109,6 +145,7 @@
 											</div>
 										</article>
 										<article>
+											<h4>Mentorship: Planet hunting</h4>
 											<a href="#" class="image"><img src="images/premap2014.jpg" alt="Ada Beale, Doug Branton" /></a>
 											<div class="inner">
 												<p>I founded and lead the Search for Planets Around post-Main Sequence stars (SPAMS) group at the 
@@ -117,21 +154,6 @@
 											</div>
 										</article>
 									</div>
-
-								</div>
-							</section>
-
-						<!-- Three -->
-							<section id="stars">
-								<div class="container">
-									<h3>Stars</h3>
-									<p>We only know as much about an exoplanet as we know about its host star, which is why I 
-									collaborate with Professors 
-									<a href="http://www.hws.edu/academics/physics/facultyProfile.aspx?facultyID=161">Leslie Hebb</a> 
-									(HWS), <a href="https://faculty.washington.edu/slhawley/">Suzanne Hawley</a> (UW) and 
-								    Dr. <a href="http://jradavenport.github.io">James Davenport</a> (WWU) on Kepler observations
-								    of spotted host stars of transiting planets. Transits allow us to break degeneracies and locate
-								    star spots on the surface of the star with precision from photometry alone.</p>
 
 								</div>
 							</section>
@@ -147,10 +169,10 @@
 									(UW) on the <a href="https://www.moore.org/grants/list/GBMF4037">Submersible Holographic 
 									Astrobiology Microscope with Ultraresolution</a>.</p>
 
-									<p>I am learning to retrieve phase and intensity images from holographic microscopy and 
-									to develop analysis software scalable to high-throughput computing facilities. Soon we will use this 
-									pipeline to classify micron-scale organisms by their motility with machine learning 
-									techniques.</p>
+									<p>I am learning to reconstruct phase and intensity images from a digital holographic microscope, and 
+									to develop analysis software scalable to high-throughput computing facilities. The reconstruction pipeline 
+									I built, called <a href="https://github.com/bmorris3/shampoo">shampoo</a>, 
+									is in active developement and is being used by our research group.</p>
 
 								</div>
 							</section>
@@ -162,12 +184,13 @@
 									<ul class="feature-icons">
 										<li class="fa-star"><a href="http://astroplan.readthedocs.org/en/latest/"><strong>astroplan</strong></a>: 
 											astropy-affiliated observation planning for astronomers</li>
-										<li class="fa-users"><a href="http://oscaar.github.io/OSCAAR/"><strong>OSCAAR</strong></a>: 
-											Photometry for amateur astronomers</li>
 										<li class="fa-flask"><a href="https://github.com/bmorris3/shampoo"><strong>shampoo</strong></a>: 
 											digital holographic microscopy and life detection</li>
-										<li class="fa-twitter"><a href="https://github.com/bmorris3/transitingnow"><strong>@transitingnow</strong></a>:
-											a Twitter Bot for exoplanet science outreach</li>
+										<li class="fa-sun-o"><a href="https://github.com/bmorris3/arces_hk"><strong>arces_hk</strong></a>: 
+										    measure chromospheric activity with the ARC 3.5 m Telescope at APO</li>
+										<li class="fa-pencil"><a href="https://github.com/UWPreMAP/PreMAP2016"><strong>Pre-MAP</strong></a>: 
+										    my intro to Python curriculum for the 2016 
+										    <a href="http://depts.washington.edu/premap/">Pre-Major in Astronomy</a> class</li>
 									</ul>
 									<p>...plus lots more contributions on <a href="https://github.com/bmorris3">GitHub</a>!</p>
 								</div>
@@ -177,14 +200,17 @@
 							<section id="outreach">
 								<div class="container">
 									<h3>Outreach</h3>
-									<p>In 2016, I am a <a href="https://www.pacificsciencecenter.org">Pacific Science Center</a> 
-									<a href="https://www.pacificsciencecenter.org/fellowship/">Science Communication Fellow</a>, and 
-									co-founder/co-organizer of the popular 
+									<p>I am co-founder/co-organizer/emcee of the popular 
 									<a href="http://astronomyontap.org/locations/seattle-wa/">Astronomy on Tap Seattle</a> public 
 									astronomy talk series.</p>
 
-									<p>I am the instructor for the UW's
-									<a href="http://www.astro.washington.edu/users/premap/">Pre-MAP</a> program for
+									<p>
+									Beginning in 2016, I am a <a href="https://www.pacificsciencecenter.org">Pacific Science Center</a> 
+									<a href="https://www.pacificsciencecenter.org/fellowship/">Science Communication Fellow</a>
+									</p>
+
+									<p>I have been the instructor (2016) and academic mentor (2015) for the UW's
+									<a href="http://depts.washington.edu/premap/">Pre-MAP</a> program for
 									freshmen undergraduates with interests in astronomy who are traditionally underrepresented 
 									in astronomy. We set them up with (1) computer programming skills, (2) research skills, (3) a 
 									research project in their first quarter of their first year with attentive mentorship and
@@ -214,18 +240,30 @@
 									<h4>First Author</h4>
 									<ul>
 										<li><a href="http://adsabs.harvard.edu/abs/2013ApJ...764L..22M">
-										Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-induced Stellar Gravity Darkening. <strong>Morris, B.M.</strong>, Mandell, A.M., & Deming, D. 2013, ApJL, 764, L22</a></li>
+										Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-induced Stellar Gravity Darkening. <br>
+										<strong>Morris, B.M.</strong>, Mandell, A.M., & Deming, D. 2013, ApJL, 764, L22</a></li>
 									</ul>
 									<h4>n<sup>th</sup> Author</h4>
 									<ul>
-										<li><a href="http://arxiv.org/abs/1507.06311">
-										Hallakoun, N., Maoz, D., Kilic, M., Mazeh, T., Agol, E., Bell, K. J., Bloemen, S., Brown, W. R., Debes, J., Faigler, S., Gianninas, A., Kull, I., Kupfer, T., Loeb, A., <strong>Morris, B.M.</strong>, Mullally, F. 2015, arXiv:1507.06311</a></li>
+										<li><a href="http://adsabs.harvard.edu/abs/2017NatAs...1E.129L">
+										A seven-planet resonant chain in TRAPPIST-1. <br>
+										Luger, R...<strong>Morris, Brett M.</strong>, et al.
+										Nature Astronomy, Volume 1, id. 0129 (2017).</a></li>
+										<li><a href="http://adsabs.harvard.edu/abs/2016MNRAS.458..845H">
+										SDSS J1152+0248: an eclipsing double white dwarf from the Kepler K2 campaign. <br>
+										Hallakoun, N., Maoz, D., Kilic, M., Mazeh, T., Agol, E., Bell, K. J., Bloemen, S., Brown, W. R., Debes, J., Faigler, S., Gianninas, A., Kull, I., Kupfer, T., Loeb, A., <strong>Morris, B.M.</strong>, Mullally, F. Monthly Notices of the Royal Astronomical Society, Volume 458, Issue 1, p.845-854 (2016)</a></li>
 									</ul>
-
-
 									<p>You can find my <a href="http://staff.washington.edu/bmmorris/docs/BrettMorrisCV.pdf">
 									CV in PDF form here</a>.</p>
-
+									<h4>Selected Proceedings and Proposals</h4>
+									<ul>
+									<li><a href="http://adsabs.harvard.edu/abs/2017AAS...22933511L">The Expanding Universe of Astronomy on Tap<br>
+									Livermore, <strong>Morris, B.M.</strong>, Narayan, Morrison, Schneider, Bozek, Rice, Hummels, Garofali, Martinez, Li, Green, LaMassa, Silvia, Schwamb, Arcavi, Silverman. AAS Meeting #229 (2017)</a></li>
+									<li><a href="http://adsabs.harvard.edu/abs/2016pyas.confE..19M">astroplan: Observation Planning for Astronomers<br>
+									<strong>Brett Morris</strong>. Python in Astronomy 2016. </a></li>
+									<li><a href="http://adsabs.harvard.edu/abs/2014koa..prop..511M">Probing Giant Planet Formation with MOSFIRE Exoplanet Transmission Spectroscopy</a><br>
+									<strong>Brett Morris</strong>. Keck Observatory Archive MOSFIRE N132M (2014). </li>
+									</ul>
 								</div>
 							</section>
 
