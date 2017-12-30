@@ -6,7 +6,7 @@
 	html5up.net | @n33co
 	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 -->
-<html>
+<html lang="en">
 	<head>
 		<title>Brett Morris</title>
 		<meta charset="utf-8" />
@@ -31,18 +31,19 @@
 			<section id="header">
 				<header>
 					<span class="image avatar"><img src="images/avatar.jpg" alt="" /></span>
-					<h1 id="logo"><a href="#">Brett Morris</a></h1>
+					<title><h1 id="logo"><a href="#">Brett Morris</a></h1></title>
 					<!--<p>Graduate Student<br />
 					University of Washington</p>-->
 				</header>
 				<nav id="nav">
 					<ul>
 						<li><a href="#one" class="active">About</a></li>
-						<li><a href="#stars">Stars</a></li>
+						<li><a href="#stellaractivity">Stellar Activity</a></li>
 						<li><a href="#exoplanets">Exoplanets</a></li>
-						<li><a href="#astrobio">Astrobiology</a></li>
 						<li><a href="#code">Code</a></li>
 						<li><a href="#outreach">Outreach</a></li>
+						<li><a href="#press">Press</a></li>
+						<li><a href="#astrobio">Astrobiology</a></li>
 						<li><a href="#pub">Publications</a></li>
 					</ul>
 				</nav>
@@ -88,15 +89,15 @@
 
 							<!-- Two -->
 
-							<section id="stars">
+							<section id="stellaractivity">
 								<div class="container">
-								<h2>Stars</h2>
+								<h2>Stellar Activity</h2>
 									<div class="features">
 									<!--<article>
 										<a href="#" class="image"><img src="images/transit044.gif" alt="CaII H chromospheric activity of HAT-P-11" /></a> -->
 									<h4>Starspot Mapping of HAT-P-11</h4>
 										<div class="inner">
-											<img src="images/transit033.gif" alt="Spot occultations of HAT-P-11" width=600/>
+											<p style="text-align:center;"><img src="images/transit033.gif" alt="Spot occultations of HAT-P-11" width=600></p>
 											<p>We only know as much about an exoplanet as we know about its host star, which is why I 
 											collaborate with Professors 
 											<a href="http://www.hws.edu/academics/physics/facultyProfile.aspx?facultyID=161">Leslie Hebb</a> 
@@ -114,7 +115,7 @@
 										<h4>Chromospheric Activity</h4>
 										<div class="inner">
 											<!--<a href="#" class="image"><img src="images/hatp11_caiih.png" alt="CaII H chromospheric activity of HAT-P-11" /></a>-->
-										<img src="images/s-index_hat11.png" alt="CaII H chromospheric activity of HAT-P-11" width=500/>
+										<p style="text-align:center;"><img src="images/s-index_hat11.png" alt="CaII H chromospheric activity of HAT-P-11" width=500></p>
 										<p>HAT-P-11 seems to have a Sun-like spot distribution, but is the overall amount of activity on HAT-P-11 
 										normal among stars of its mass and rotation period/age? To find out, I calibrated the APO Echelle Spectrograph
 										to measure Mount Wilson S-indices of chromospheric activity. It seems HAT-P-11 is more active than planet hosts of 
@@ -137,10 +138,8 @@
 											<a href="#" class="image"><img src="images/transit_c_cropped.png" alt="TRAPPIST-1 c" /></a>
 											<div class="inner">
 												<p>I work with Professor <a href="http://www.astro.washington.edu/users/agol/">Eric Agol</a> (UW) 
-												and Dr. Carolina von Essen (Aarhus University) on characterizing exoplanet systems with transit timing variations with
-												Kepler and ground-based observations from the ARC 3.5m telescope at Apache Point Observatory.</p>
-												<p>The transit at left is the Earth-sized exoplanet TRAPPIST-1 c, observed with the ARC 3.5 m Telescope at APO 
-												with the ARCTIC imager and holographic diffuser.</p>
+												and Dr. Carolina von Essen (Aarhus University) on characterizing exoplanet systems with transit timing variations with Kepler and ground-based observations from the ARC 3.5m telescope at Apache Point Observatory.</p>
+												<p>The transit at left is the Earth-sized exoplanet TRAPPIST-1 c, observed with the ARC 3.5 m Telescope at APO with the ARCTIC imager and holographic diffuser.</p>
 											</div>
 										</article>
 										<article>
@@ -162,14 +161,129 @@
 											</div>
 										</article>
 									</div>
-
 								</div>
 							</section>
-							
-						<!-- Four -->
+
+							<section id="code">
+								<div class="container">	
+								<h3>Open Software</h3>
+								<div class="features">
+									<article>
+									<h4>Featured software: astroplan</h4>
+									<!--<a href="#" class="image"><img src="images/airmass_plot.png" alt="Airmass plots with astroplan" /></a>-->
+									<a href="#" class="image"> <iframe width="350" height="200" src="https://www.youtube.com/embed/ML2zWwdZiQ0?rel=0" allowfullscreen></iframe></a>
+									<div class="inner">
+									<p><a href="http://astroplan.readthedocs.org/en/latest/"><strong>astroplan</strong></a> 
+									   is an astropy affiliated observation planning for astronomers. I wrote a paper 
+								       describing the package's design and use which was recently accepted to the 
+									   Astronomical Journal – <a href="#astroplan-paper">read all about it here.</a></p>
+									</div>
+									</article>
+									<article>
+									<p>Here's some more open source software I wrote to make your day better:</p>
+									<ul class="feature-icons">
+										<li class="fa-spinner"><a href="https://github.com/bmorris3/mrspoc"><strong>mrspoc</strong></a>: 
+											Compute astrometric centroid offsets due to starspots for nearby Gaia stars (paper submitted)</li>
+										<li class="fa-search"><a href="https://github.com/bmorris3/shampoo"><strong>shampoo</strong></a>: 
+											digital holographic microscopy and life detection</li>
+										<li class="fa-barcode"><a href="https://github.com/bmorris3/arces_hk"><strong>arces_hk</strong></a>: 
+										    measure chromospheric activity with the ARC 3.5 m Telescope at APO [<a href="#arces_hk">paper</a>]</li>
+										<li class="fa-pencil"><a href="https://github.com/UWPreMAP/PreMAP2016"><strong>Pre-MAP</strong></a>: 
+										    my intro to Python curriculum for the 2016 
+										    <a href="http://depts.washington.edu/premap/">Pre-Major in Astronomy</a> class</li>
+									</ul>
+								<p>...plus lots more contributions on <a href="https://github.com/bmorris3">GitHub</a>!</p>
+							    </article>
+								</div></div>
+							</section>
+
+							<section id="outreach">
+								<div class="container">
+									<h3>Outreach</h3>
+									<div class="features">
+									<article>
+									<h4>Astronomy on Tap</h4>
+									<!--<a href="#" class="image"><img src="images/aot.jpg" alt="Astronomy on Tap Seattle" /></a>-->
+									<a href="#" class="image"> <!-- gesture="media" allow="encrypted-media" frameborder="0"  -->
+									<iframe width="350" height="200" src="https://www.youtube.com/embed/oXEq9QgcK2c?rel=0" allowfullscreen></iframe></a>
+										<div class="inner">
+										<p>I am co-founder/co-organizer of the popular 
+										<a href="http://astronomyontap.org/locations/seattle-wa/">Astronomy on Tap Seattle</a> public 
+										astronomy talk series. I coordinate with speakers, write trivia, present on current astro-news, 
+									    and have the most fun as the MC and as an occassional speaker. The video at left is an AoT talk 
+									    I gave on the mysterious Boyajian's Star.</p>
+									    </div>
+									</article>
+
+									<article>
+									<h4>Pacific Science Center</h4>
+									<a href="#" class="image"><img src="images/psc.jpeg" alt="Pacific Science Center (photo cred: Lisa C.)" /></a>
+										<div class="inner">
+											<p> As of 2016, I am a <a href="https://www.pacificsciencecenter.org">Pacific Science Center</a> 
+											<a href="https://www.pacificsciencecenter.org/fellowship/">Science Communication Fellow.</a> I reguluarly
+										    give public talks about astronomy and astrobiology there.</p>
+									    </div>
+									</article>
+
+									<article>
+									<h4>Pre-Major in Astronomy Program</h4>
+									<a href="#" class="image"><img src="images/premap.jpg" alt="Pacific Science Center (photo cred: Lisa C.)" /></a>
+										<div class="inner">
+											<p>I have been the instructor (2016) and academic mentor (2015) for the UW's
+											<a href="http://depts.washington.edu/premap/">Pre-MAP</a> program for
+											freshmen undergraduates with interests in astronomy who are traditionally underrepresented 
+											in astronomy. We set them up with (1) computer programming skills, (2) research skills, (3) a 
+											research project in their first quarter of their first year with attentive mentorship and
+											peer support.</p>
+										</div>
+									</article>
+
+									<article>
+									<h4>Digital Outreach</h4>
+									<p>For fun (and for science!) I maintain a small army of Twitter Bots that do science 
+									outreach at all times while I do other things. The army consists of: </p>
+									<ul class="feature-icons">
+										<li class="fa-television"><a href="https://twitter.com/planettvguide" target="_blank"><strong>@planetTVguide</strong></a>: 
+											Accounting for light travel time between planets, it tells you when premiere TV broadcasts of historic shows reach known exoplanets in real time</li>
+										<li class="fa-globe"><a href="https://twitter.com/transitingnow" target="_blank"><strong>@transitingnow</strong></a>: 
+											Demonstrating the vast number of transiting exoplanets with real-time tweets when each transiting exoplanet appears to pass in front of its star</li>
+										<li class="fa-history"><a href="https://twitter.com/farawayplanets" target="_blank"><strong>@farawayplanets</strong></a>: If observers on distant planets had telescopes that could see what is happening on Earth and they looked right now, this is what they would see</li>
+									</ul>
+									<p>The Twitter Bots have gotten some attention in the press lately. See below for links!</p>
+
+									</article>
+								</div></div>	
+								</section>
+
+							<section id="press">
+								<div class="container">
+									<h3>Popular Science Press</h3>
+									<div class="features">	
+									<article>
+									<ul class="fa-ul">
+										<li><i class="fa-li fa fa-external-link"></i><a href="https://www.nasa.gov/content/goddard/nasa-funded-program-helps-amateur-astronomers-detect-alien-worlds/" target="_blank">NASA-funded Program Helps Amateur Astronomers Detect Alien Worlds.</a><br /> NASA Press Office. September 4, 2013.</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="https://www.popsci.com/diy/article/2013-09/free-nasa-software-lets-you-find-exoplanets-your-home-telescope" target="_blank">Spot Exoplanets With Your Home Telescope, Using Free NASA Software.</a><br /> Science Daily. September 6, 2013</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="http://www.popularmechanics.com/space/a18174/exoplanet-twitter-transits/" target="_blank">Twitter Bot Tweets When Old TV Shows Reach Another Planet.</a><br /> Popular Mechanics. November 12, 2015</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="https://astrobites.org/2017/08/29/hat-p-11-a-spotted-star/" target="_blank">Astronomy Student Is Tracking TV Shows’ Journey Into Space.</a><br /> Vocativ. Nov 20, 2015 – includes a fun video!</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="http://www.washington.edu/news/2017/05/22/kepler-telescope-spies-details-of-trappist-1-systems-outermost-planet/" target="_blank">Kepler telescope spies details of TRAPPIST-1 system’s outermost planet.</a><br /> UW Press Office. October 6, 2016</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="">Astroplan Python library makes astronomy research planning easier.</a><br /> opensource.com. August 22, 2017</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="https://astrobites.org/2017/08/29/hat-p-11-a-spotted-star/" target="_blank">HAT-P-11: A Spotted Star.</a><br />astrobites. August 29, 2017</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="http://science.psu.edu/news-and-events/2017-news/Mahadevan10-2017" target="_blank">You can see that from here: New telescope attachment allows ground-based observations of new worlds to rival those from space.</a><br /> PSU Press Office. October 5, 2017</li>
+										<li><i class="fa-li fa fa-external-link"></i><a href="http://www.seattleastronomy.com/blog1/2017/12/finding-life/">Finding life.</a><br /> Seattle Astronomy. December 15, 2017</li>
+									</ul>
+								</article>
+								</div>
+								</div>
+							</section>
+
+
 							<section id="astrobio">
 								<div class="container">
+									<div class="features">
+									<article>
 									<h3>Astrobiology</h3>
+									<p style="text-align:center;"><img src="images/yellowstone.jpg" alt="Microbial ecology at Yellowstone" width=500 align="middle" /></p>
+
 									<p>As a dual-title PhD in astronomy and astrobiology, I am privileged to work with 
 									interdisciplinary scientists. For my astrobiology research rotation, I am developing 
 									a comprehensive data reduction and analysis pipeline with 
@@ -181,119 +295,55 @@
 									to develop analysis software scalable to high-throughput computing facilities. The reconstruction pipeline 
 									I built, called <a href="https://github.com/bmorris3/shampoo">shampoo</a>, 
 									is in active developement and is being used by our research group.</p>
-
-								</div>
-							</section>
-
-							<section id="code">
-								<div class="container">	
-									<article>
-									<h4>Featured software: astroplan</h4>
-									<a href="#" class="image"><img src="images/premap2014.jpg" alt="Ada Beale, Doug Branton" /></a>
-									<div class="inner">
-
-									<p><a href="http://astroplan.readthedocs.org/en/latest/"><strong>astroplan</strong></a> 
-									   is an astropyaffiliated observation planning for astronomers. I wrote a paper 
-								           describing the package's design and use which was recently accepted to the 
-									   Astronomical Journal – <a href="https://arxiv.org/abs/1712.09631">read all about it here.</a></p>
-									</div>
-									</article>
-									<br /><br />
-									<p>Here's some more open source software I wrote to make your day better:</p>
-									<ul class="feature-icons">
-										<li class="fa-flask"><a href="https://github.com/bmorris3/shampoo"><strong>shampoo</strong></a>: 
-											digital holographic microscopy and life detection</li>
-										<li class="fa-sun-o"><a href="https://github.com/bmorris3/arces_hk"><strong>arces_hk</strong></a>: 
-										    measure chromospheric activity with the ARC 3.5 m Telescope at APO</li>
-										<li class="fa-pencil"><a href="https://github.com/UWPreMAP/PreMAP2016"><strong>Pre-MAP</strong></a>: 
-										    my intro to Python curriculum for the 2016 
-										    <a href="http://depts.washington.edu/premap/">Pre-Major in Astronomy</a> class</li>
-									</ul>
-									</div>
-								<p>...plus lots more contributions on <a href="https://github.com/bmorris3">GitHub</a>!</p>
-								</div>
-							</section>
-
-
-							<section id="outreach">
-								<div class="container">
-									<h3>Outreach</h3>
-									<p>I am co-founder/co-organizer/emcee of the popular 
-									<a href="http://astronomyontap.org/locations/seattle-wa/">Astronomy on Tap Seattle</a> public 
-									astronomy talk series.</p>
-
-									<p>
-									Beginning in 2016, I am a <a href="https://www.pacificsciencecenter.org">Pacific Science Center</a> 
-									<a href="https://www.pacificsciencecenter.org/fellowship/">Science Communication Fellow</a>
-									</p>
-
-									<p>I have been the instructor (2016) and academic mentor (2015) for the UW's
-									<a href="http://depts.washington.edu/premap/">Pre-MAP</a> program for
-									freshmen undergraduates with interests in astronomy who are traditionally underrepresented 
-									in astronomy. We set them up with (1) computer programming skills, (2) research skills, (3) a 
-									research project in their first quarter of their first year with attentive mentorship and
-									peer support.</p>
-
-									<p>For fun (and for science!) I maintain a small army of Twitter Bots that do science 
-									outreach at all times while I do other things. The army consists of: </p>
-									<ul class="feature-icons">
-										<li class="fa-television"><a href="https://twitter.com/planettvguide"><strong>@planetTVguide</strong></a>: 
-											Accounting for light travel time between planets, it tells you when premiere TV broadcasts of historic shows reach known exoplanets in real time</li>
-										<li class="fa-globe"><a href="https://twitter.com/transitingnow"><strong>@transitingnow</strong></a>: 
-											Demonstrating the vast number of transiting exoplanets with real-time tweets when each transiting exoplanet appears to pass in front of its star</li>
-										<li class="fa-history"><a href="https://twitter.com/farawayplanets"><strong>@farawayplanets</strong></a>: 
-											If observers on distant planets had telescopes that could see what is happening on Earth and they looked right now, this is what they would see</li>
-									</ul>
-
-									<p><strong>In the press</strong>: the bots have gotten some attention lately from 
-									<a href="http://www.popularmechanics.com/space/a18174/exoplanet-twitter-transits/">Popular Mechanics</a> and 
-									<a href="http://www.vocativ.com/news/253441/twitter-bot-galactic-tv-guide/">Vocativ</a>.</p>
+								</article>
+								</div>		
 								</div>
 							</section>
 
 							<section id="pub">
 								<div class="container">
 									<h3>Publications</h3>
-									<p>See my <a href="http://adsabs.harvard.edu/cgi-bin/nph-abs_connect?library&libname=Brett+M.+Morris&libid=531e073569">full list of publications and proceedings here</a>.</p>
+									<p>See my <a href="http://adsabs.harvard.edu/cgi-bin/nph-abs_connect?library&libname=Brett+M.+Morris&libid=531e073569" target="_blank">full list of publications and proceedings here</a>.</p>
 									<h4>First Author</h4>
-									<ul>
-										<li><a href="https://arxiv.org/abs/1712.09631">astroplan: An Open Source Observation Planning Package in Python<br>
-										<strong>Morris, B.M.</strong>, Tollerud E, Sipocz B, Deil C, Douglas S.T., Medina J.B., Vyhmeister K, Smith T.R., Littlefair S., Price-Whelan AM, Gee WT, Jeschke E</a>
-										<li><a href="http://adsabs.harvard.edu/abs/2017ApJ...846...99M">Chromospheric Activity of HAT-P-11: an Unusually Active Planet-Hosting K Star<br>
+									<ul class="fa-ul">
+										<li id="astroplan-paper"><i class="fa-li fa fa-file-text-o"></i><a href="https://arxiv.org/abs/1712.09631" target="_blank">astroplan: An Open Source Observation Planning Package in Python<br>
+										<strong>Morris, B.M.</strong>, Tollerud E., Sipocz B., Deil C., Douglas S.T., Medina J.B., Vyhmeister K., Smith T.R., Littlefair S., Price-Whelan A.M., Gee W.T., Jeschke E. (in press, 2018)</a>
+										<li id="arces_hk"><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2017ApJ...846...99M" target="_blank">Chromospheric Activity of HAT-P-11: an Unusually Active Planet-Hosting K Star (2017)<br>
 										<strong>Morris, B.M.</strong>, Hawley S.L., Hebb L., Saraki C., Davenport J.R.A., Isaacson H., Howard A.W., Montet B.T., Agol E., The Astrophysical Journal, 846, 99</a></li>
-										<li><a href="http://adsabs.harvard.edu/abs/2017ApJ...848...58M">The Starspots of HAT-P-11: Evidence for a Solar-like Dynamo. <br> 
-										<strong>Morris, B.M.</strong>, Hebb L., Davenport J.R.A., Rohn G., Hawley S.L., The Astrophysical Journal, 846, 2 </a></li>
-
-										<li><a href="http://adsabs.harvard.edu/abs/2013ApJ...764L..22M">
+										<li><a href="http://adsabs.harvard.edu/abs/2017ApJ...848...58M" target="_blank"><i class="fa-li fa fa-file-text-o"></i>The Starspots of HAT-P-11: Evidence for a Solar-like Dynamo (2017)<br> 
+										<strong>Morris, B.M.</strong>, Hebb L., Davenport J.R.A., Rohn G., Hawley S.L., The Astrophysical Journal, 846, 2 (2017)</a></li>
+										<li><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2013ApJ...764L..22M" target="_blank">
 										Kepler's Optical Secondary Eclipse of HAT-P-7b and Probable Detection of Planet-induced Stellar Gravity Darkening. <br>
 										<strong>Morris, B.M.</strong>, Mandell, A.M., & Deming, D. 2013, Astrophysical Journal Letters, 764, L22</a></li>
 									</ul>
+
 									<h4>n<sup>th</sup> Author</h4>
-									<ul>
-										<li><a href="http://adsabs.harvard.edu/abs/2017ApJ...848....9S">Toward Space-like Photometric Precision from the Ground with Beam-shaping Diffusers<br>
+									<ul class="fa-ul">
+										<li><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2017ApJ...848....9S">Toward Space-like Photometric Precision from the Ground with Beam-shaping Diffusers<br>
 										Stefansson, G... <strong>Morris, B.M.</strong>, et al. 
 										The Astrophysical Journal, Volume 848, Number 1 (2017)</a></li>
-										<li><a href="http://adsabs.harvard.edu/abs/2017NatAs...1E.129L">
+										<li><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2017NatAs...1E.129L">
 										A seven-planet resonant chain in TRAPPIST-1. <br>
 										Luger, R...<strong>Morris, B.M.</strong>, et al.
 										Nature Astronomy, Volume 1, id. 0129 (2017).</a></li>
-										<li><a href="http://adsabs.harvard.edu/abs/2016MNRAS.458..845H">
+										<li><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2016MNRAS.458..845H">
 										SDSS J1152+0248: an eclipsing double white dwarf from the Kepler K2 campaign. <br>
 										Hallakoun, N., Maoz, D., Kilic, M., Mazeh, T., Agol, E., Bell, K. J., Bloemen, S., Brown, W. R., Debes, J., Faigler, S., Gianninas, A., Kull, I., Kupfer, T., Loeb, A., <strong>Morris, B.M.</strong>, Mullally, F. Monthly Notices of the Royal Astronomical Society, Volume 458, Issue 1, p.845-854 (2016)</a></li>
 									</ul>
+
 									<p>You can find my <a href="http://staff.washington.edu/bmmorris/docs/BrettMorrisCV.pdf">
 									CV in PDF form here</a>.</p>
 									<h4>Selected Proceedings and Proposals</h4>
 									<ul>
-									<li><a href="http://adsabs.harvard.edu/abs/2017AAS...22933511L">The Expanding Universe of Astronomy on Tap<br>
+									<li><a href="http://adsabs.harvard.edu/abs/2017AAS...22933511L" target="_blank">The Expanding Universe of Astronomy on Tap<br>
 									Livermore, <strong>Morris, B.M.</strong>, Narayan, Morrison, Schneider, Bozek, Rice, Hummels, Garofali, Martinez, Li, Green, LaMassa, Silvia, Schwamb, Arcavi, Silverman. AAS Meeting #229 (2017)</a></li>
-									<li><a href="http://adsabs.harvard.edu/abs/2016pyas.confE..19M">astroplan: Observation Planning for Astronomers<br>
+									<li><a href="http://adsabs.harvard.edu/abs/2016pyas.confE..19M" target="_blank">astroplan: Observation Planning for Astronomers<br>
 									<strong>Brett Morris</strong>. Python in Astronomy 2016. </a></li>
-									<li><a href="http://adsabs.harvard.edu/abs/2014koa..prop..511M">Probing Giant Planet Formation with MOSFIRE Exoplanet Transmission Spectroscopy</a><br>
+									<li><a href="http://adsabs.harvard.edu/abs/2014koa..prop..511M" target="_blank">Probing Giant Planet Formation with MOSFIRE Exoplanet Transmission Spectroscopy</a><br>
 									<strong>Brett Morris</strong>. Keck Observatory Archive MOSFIRE N132M (2014). </li>
 									</ul>
 								</div>
-							</section>
+								</section>
 
 					</div>
 
