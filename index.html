@@ -79,11 +79,11 @@ Free for personal and commercial use under the CCA 3.0 license (html5up.net/lice
 		<h2>Brett M. Morris</h2>
 		<p>Characterizing exoplanets and their host stars</p>
 		</header>
-		<p>I am a fifth year PhD candidate in the dual-title PhD Astronomy and Astrobiology
+		<p>I am a sixth year PhD candidate in the dual-title PhD Astronomy and Astrobiology
 		Program at the University of Washington in Seattle. My research interests sit at the intersection
 		of characterizing exoplanets and their host stars. I work with ground and space-based
-		observations to measure the properties of planet-hosting stars, the compositions and structures 
-		of exoplanet atmospheres, and exoplanet masses.</p>
+		observations to measure the properties of planet-hosting stars, and their affects on our measurements
+		of the compositions and structures of exoplanets.</p>
 
 		<p>You can find my <a href="http://staff.washington.edu/bmmorris/docs/BrettMorrisCV.pdf">
 		CV in PDF form here</a>, or you can scroll down for an abridged web version.</p>
@@ -129,7 +129,19 @@ Free for personal and commercial use under the CCA 3.0 license (html5up.net/lice
 			read here</a>.</p>	 
 		    </div>
 
-		<h4>Ground-based photometry of HAT-P-11 b</h4>
+
+		<h3>Reparameterizing the transit light curve with <a href="http://robin.readthedocs.io/en/latest/">robin</a></h3>
+			<div class="inner">
+			<!--<a href="#" class="image"><img src="images/hatp11_caiih.png" alt="CaII H chromospheric activity of HAT-P-11" /></a>-->
+			<p style="text-align:center;"><img src="images/robin.png" alt="A spot map that interferes with the transit depth; not a problem for robin!" width=700></p>
+			<p>If a star is sufficiently contaminated by bright or dark regions, the transit depth that we observe with photometry is likely <emph>not</emph>
+			equivalent to the square-root of the ratio of planet to stellar radii. However, the planet's radius is still encoded in the transit light curve
+			in the ingress and egress durations. In a <a href="#robin">paper recently accepted by AJ</a>, we introduce a simple reparameterization 
+			to the Mandel and Agol (2002) transit model which allows you to fit for the planet radius, even in the presence of significant contamination
+		    by bright or dark regions on the stellar surface. </p>
+		    </div>
+
+		<h3>Ground-based photometry of HAT-P-11 b</h3>
 			<p style="text-align:center;"><img src="images/hat11_rn.jpg" alt="Solar astrometric shifts due to starspots" width=700></p>
 			<div class="inner">
 			<p>As the stellar activity cycle of HAT-P-11 progresses, I am monitoring HAT-P-11's starspots from the ground with the ARC 3.5 m Telescope at APO, using a holographic diffuser for precision photometry (see <a href="#diffuser">details here</a>). In <a href="#hat11_rn">this Research Note</a>, we find that HAT-P-11 was more spotted than ever before in late 2017. </p>
@@ -229,6 +241,8 @@ Free for personal and commercial use under the CCA 3.0 license (html5up.net/lice
 
 		<h4>First Author Papers</h4>
 		<ul class="fa-ul">
+		    <li id="robin"><i class="fa-li fa fa-file-text-o"></i><a href="https://arxiv.org/abs/1807.04886" target="_blank"><strong>Robust Transiting Exoplanet Radii in the Presence of Starspots from Ingress and Egress Durations</strong><br>
+			Morris, B.M., Agol E., Hebb, L., Hawley, S.L., The Astronomical Journal (2018)</a></li>
 		    <li id="bright"><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2018ApJ...857...39M" target="_blank"><strong>Possible Bright Starspots on TRAPPIST-1</strong><br>
 			Morris, B.M., Agol E., Davenport J.R.A., Hawley, S.L., The Astrophysical Journal (2018)</a></li>
 			<li id="gaia"><i class="fa-li fa fa-file-text-o"></i><a href="http://adsabs.harvard.edu/abs/2018MNRAS.476.5408M" target="_blank"><strong>Spotting Stellar Activity Cycles in Gaia Astrometry</strong><br>
